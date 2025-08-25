@@ -8,29 +8,16 @@
   <style>
     :root{--card:rgba(0,0,0,.72);--fg:#eaf2ff;--muted:#aab6d1;--btn:#2563eb;--btnh:#1d4ed8}
     *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
-      color:var(--fg);
-      background:url("assets/bg.jpg") no-repeat center center fixed;
-      background-size:cover;
-    }
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color:var(--fg);
+      background:url("assets/bg.jpg") no-repeat center center fixed;background-size:cover;}
     .container{max-width:1100px;margin:0 auto;padding:28px 16px;}
     h2{margin:0 0 16px 0;text-shadow:0 2px 10px rgba(0,0,0,.35)}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .stack{display:grid;gap:16px}
-    .card{
-      background:var(--card);
-      border-radius:14px;
-      padding:16px;
-      box-shadow:0 6px 30px rgba(0,0,0,.25);
-      backdrop-filter: blur(6px);
-    }
+    .card{background:rgba(0,0,0,.72);border-radius:14px;padding:16px;box-shadow:0 6px 30px rgba(0,0,0,.25);backdrop-filter:blur(6px)}
     .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     label.small{font-size:12px;color:var(--muted)}
-    select,input,textarea,button{
-      width:100%;padding:10px 12px;border:0;border-radius:10px;outline:none;
-    }
+    select,input,textarea,button{width:100%;padding:10px 12px;border:0;border-radius:10px;outline:none}
     select,input,textarea{background:#0f172a;color:#e5edff}
     textarea{min-height:72px;resize:vertical}
     button{background:var(--btn);color:#fff;cursor:pointer;font-weight:600}
@@ -46,9 +33,8 @@
     <h2>Sentient Türkiye Community Map — <b>GemBatu</b> <span class="muted" style="font-size:12px">(production)</span></h2>
 
     <div class="grid">
-      <!-- LEFT: Join + Events -->
+      <!-- LEFT -->
       <div class="stack">
-        <!-- Join -->
         <div class="card">
           <div class="row" style="justify-content:space-between">
             <h3 style="margin:0">Join the map</h3>
@@ -68,7 +54,6 @@
           </div>
         </div>
 
-        <!-- Events -->
         <div class="card">
           <h3 style="margin-top:0">Community events</h3>
           <label class="small">City</label>
@@ -87,7 +72,7 @@
         </div>
       </div>
 
-      <!-- RIGHT: City browser -->
+      <!-- RIGHT -->
       <div class="card">
         <h3 style="margin-top:0">City browser</h3>
         <div class="row">
@@ -106,7 +91,7 @@
   </div>
 
   <script>
-    // --- Supabase setup ---
+    // --- Supabase ---
     const SUPABASE_URL = "https://zooclwpqfwpzwosnqjem.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvb2Nsd3BxZndwendvc25xamVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwODczNjUsImV4cCI6MjA3MTY2MzM2NX0.lCW2dSb7HV3vuXKNa_QFJ0o5I4522RE8CS-PDmOflk0";
     const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -131,7 +116,7 @@
     const btnCreateEvent = document.getElementById('btnCreateEvent');
     const eventsList = document.getElementById('eventsList');
 
-    // --- 81 il listesi ---
+    // --- Cities (81) ---
     const CITIES = [
       "Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin",
       "Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur",
@@ -142,27 +127,20 @@
       "Nevşehir","Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Siirt","Sinop","Sivas",
       "Şanlıurfa","Şırnak","Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"
     ];
-
-    // Dropdownları doldur
     function fillCitySelect(el, includeAll=false){
       el.innerHTML = "";
       if(includeAll){
         const opt = document.createElement('option');
-        opt.value = "ALL";
-        opt.textContent = "All cities";
+        opt.value = "ALL"; opt.textContent = "All cities";
         el.appendChild(opt);
       }
-      CITIES.forEach(c=>{
-        const o = document.createElement('option');
-        o.value = c; o.textContent = c;
-        el.appendChild(o);
-      });
+      CITIES.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;el.appendChild(o);});
     }
     fillCitySelect(citySelect);
     fillCitySelect(eventCity);
     fillCitySelect(browserCity, true);
 
-    // Discord kimliklemeden discord_id çıkar
+    // --- Helpers ---
     function getDiscordIdFromSession(session){
       const ids = session?.user?.identities || [];
       const d = ids.find(i=>i.provider==="discord");
@@ -170,6 +148,7 @@
       const fromMeta = session?.user?.user_metadata?.provider_id || session?.user?.user_metadata?.sub;
       return fromIdentities || fromMeta || null;
     }
+    function currentBrowserCity(){ const v=browserCity.value; return (v && v!=="ALL") ? v : null; }
 
     // --- Auth ---
     btnLogin.addEventListener('click', async ()=>{
@@ -190,6 +169,17 @@
       }
     }
 
+    // Kullanıcının kayıtlı şehrini al ve eventCity varsayılanını ona ayarla
+    async function setEventCityFromProfile(){
+      const { data:{session} } = await supa.auth.getSession();
+      if(!session) return;
+      const { data } = await supa.from('users').select('city').eq('id', session.user.id).maybeSingle();
+      if(data?.city && CITIES.includes(data.city)){
+        eventCity.value = data.city;
+        await refreshEvents(eventCity.value);
+      }
+    }
+
     // --- Save city ---
     btnSaveCity.addEventListener('click', async ()=>{
       const { data:{session} } = await supa.auth.getSession();
@@ -200,42 +190,37 @@
 
       const username = user.user_metadata?.user_name || user.user_metadata?.full_name || 'discord-user';
       const discordId = getDiscordIdFromSession(session);
-
       const payload = { id: user.id, username, city };
-      if(discordId) payload.discord_id = discordId; // NULL CONSTRAINT'i çözer
+      if(discordId) payload.discord_id = discordId;
 
       const { error } = await supa.from('users').upsert(payload, { onConflict: 'id' });
       if(error){ alert("Save error: " + error.message); return; }
+
       await refreshMembersUI(currentBrowserCity());
+      // event formu için varsayılan şehir olarak kullanıcının şehrini set et
+      eventCity.value = city;
+      await refreshEvents(city);
       alert("Your city has been saved.");
     });
 
     // --- Members browser ---
-    function currentBrowserCity(){
-      const v = browserCity.value;
-      return (v && v !== "ALL") ? v : null;
-    }
-
     async function refreshMembersUI(selectedCity=null){
-      // toplam üye sayısı
       const total = await supa.from('users').select('id');
       totalCount.textContent = (total.data?.length || 0) + " total members";
 
-      // seçili şehre göre filtre
-      let q = supa.from('users').select('username,city').order('username', { ascending:true });
+      let q = supa.from('users').select('username,city').order('username',{ascending:true});
       if(selectedCity) q = q.eq('city', selectedCity);
 
       const { data, error } = await q;
       if(error){ membersList.innerHTML = "Error: "+error.message; return; }
 
       cityCount.textContent = (data?.length || 0) + " in this city";
-      if(!data || data.length===0){ membersList.innerHTML = "No members yet."; return; }
-
-      membersList.innerHTML = data.map(u => `<div>@${u.username} — ${u.city}</div>`).join('');
+      membersList.innerHTML = (!data || data.length===0)
+        ? "No members yet."
+        : data.map(u=>`<div>@${u.username} — ${u.city}</div>`).join('');
     }
-
     browserCity.addEventListener('change', ()=> refreshMembersUI(currentBrowserCity()));
-    btnShowAll.addEventListener('click', ()=> { browserCity.value="ALL"; refreshMembersUI(null); });
+    btnShowAll.addEventListener('click', ()=>{ browserCity.value="ALL"; refreshMembersUI(null); });
 
     // --- Events ---
     async function refreshEvents(city){
@@ -246,7 +231,7 @@
       if(!data || data.length===0){ eventsList.innerHTML = "No events for this city yet."; return; }
       eventsList.innerHTML = data.map(e=>{
         const dt = e.event_date ? new Date(e.event_date).toLocaleString() : "";
-        return `<div><b>${e.title}</b> — ${e.city}<br>${dt} @ ${e.venue}<br><span class="muted">${e.description||""}</span></div>`;
+        return `<div><b>${e.title}</b> — ${e.city}<br>${dt}${e.venue?` @ ${e.venue}`:""}<br><span class="muted">${e.description||""}</span></div>`;
       }).join('<div style="height:8px"></div>');
     }
 
@@ -257,7 +242,7 @@
       const payload = {
         city: eventCity.value,
         title: eventTitle.value.trim(),
-        event_date: eventDate.value || null,
+        event_date: eventDate.value ? new Date(eventDate.value).toISOString() : null, // <-- ISO/UTC
         venue: eventVenue.value.trim(),
         description: eventDesc.value.trim(),
         created_by: session.user.id
@@ -267,35 +252,32 @@
       const { error } = await supa.from('events').insert(payload);
       if(error){ alert("Error: "+error.message); return; }
 
-      // formu temizle
-      eventTitle.value = ""; eventVenue.value = ""; eventDesc.value = "";
-      // aynı şehir listesi yenilensin
+      eventTitle.value=""; eventVenue.value=""; eventDesc.value="";
       await refreshEvents(eventCity.value);
       alert("Event created.");
     });
 
-    // --- Realtime (üyeler & etkinlikler) ---
+    // --- Realtime (members & events) ---
     supa.channel('realtime-users')
-      .on('postgres_changes',{event:'INSERT', schema:'public', table:'users'}, ()=> refreshMembersUI(currentBrowserCity()))
-      .on('postgres_changes',{event:'UPDATE', schema:'public', table:'users'}, ()=> refreshMembersUI(currentBrowserCity()))
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'users'}, ()=> refreshMembersUI(currentBrowserCity()))
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'users'}, ()=> refreshMembersUI(currentBrowserCity()))
       .subscribe();
 
+    // Events: INSERT + UPDATE + DELETE → seçili şehri yenile
     supa.channel('realtime-events')
-      .on('postgres_changes',{event:'INSERT', schema:'public', table:'events'}, (payload)=>{
-        // sadece seçili şehirle ilgiliyse listeyi yenile
-        const watchCity = eventCity.value;
-        if(!watchCity || payload.new.city === watchCity) refreshEvents(watchCity);
-      })
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'events'}, ()=> refreshEvents(eventCity.value))
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'events'}, ()=> refreshEvents(eventCity.value))
+      .on('postgres_changes',{event:'DELETE',schema:'public',table:'events'}, ()=> refreshEvents(eventCity.value))
       .subscribe();
 
     // --- Init ---
     (async ()=>{
       await reflectSession();
       await refreshMembersUI(null);
+      await setEventCityFromProfile(); // <-- kullanıcı şehrine göre varsayılan eventCity
       await refreshEvents(eventCity.value);
 
-      // sayfa yenilendiğinde kullanıcı bağlıysa pill güncellensin
-      supa.auth.onAuthStateChange(async (_event, _session)=>{ await reflectSession(); });
+      supa.auth.onAuthStateChange(async ()=>{ await reflectSession(); await setEventCityFromProfile(); });
     })();
   </script>
 </body>
