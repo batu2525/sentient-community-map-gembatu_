@@ -1,315 +1,304 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sentient Türkiye Community Map — GemBatu (production)</title>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" />
-<style>
-  :root{
-    --bg:#0b1220; --panel:#121a26; --muted:#8ea6c9; --text:#e7eefc; --brand:#6aa9ff;
-    --ring:rgba(106,169,255,.35); --shadow:rgba(0,0,0,.35);
-  }
-  *{box-sizing:border-box} html,body{height:100%}
-  body{
-    margin:0; font:16px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
-    color:var(--text); background:var(--bg); overflow-y:overlay;
-  }
-  .bg{
-    position:fixed; inset:0; z-index:-2;
-    background:
-      radial-gradient(ellipse at 30% 20%, rgba(255,255,255,.08), transparent 60%),
-      linear-gradient(180deg, rgba(12,18,28,.85), rgba(12,18,28,.92)),
-      #0b1220 url("assets/bg.jpg?v=1") center/cover no-repeat;
-    filter:saturate(1.02) contrast(1.02);
-  }
-  .wrap{max-width:1060px; margin:32px auto; padding:0 16px}
-  .header{font-weight:800; font-size:20px; letter-spacing:.2px; display:flex; gap:8px; align-items:center}
-  .badge{font-size:12px; color:#a8c7ff; background:rgba(106,169,255,.12); padding:4px 8px; border-radius:999px}
-  .grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:18px}
-  .panel{
-    background:rgba(18,26,38,.82); border:1px solid rgba(255,255,255,.06);
-    border-radius:14px; box-shadow:0 10px 30px var(--shadow);
-    padding:16px 16px 18px;
-    backdrop-filter:saturate(1.2) blur(6px)
-  }
-  .panel h3{margin:0 0 10px; font-size:14px; color:#bcd0ef; letter-spacing:.4px}
-  .row{display:flex; gap:10px; align-items:center; margin-top:10px}
-  .btn{
-    appearance:none; border:0; border-radius:10px; padding:10px 14px; font-weight:700;
-    background:#1f2b40; color:#dfeaff; cursor:pointer; transition:.18s ease-in-out;
-    border:1px solid rgba(255,255,255,.06)
-  }
-  .btn.primary{background:#2d6bff; border-color:#2d6bff; box-shadow:0 0 0 0 var(--ring)}
-  .btn.primary:hover{filter:brightness(1.05)}
-  .btn:disabled{opacity:.55; cursor:not-allowed}
-  .meta{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px}
-  .pill{font-size:12px; color:#cddbf5; background:rgba(255,255,255,.06); padding:3px 8px; border-radius:999px}
-  input, select, textarea{
-    width:100%; background:#0f1623; color:#e9f1ff; border:1px solid rgba(255,255,255,.08);
-    border-radius:10px; padding:10px 12px; outline:none; transition:.15s; font:inherit
-  }
-  input:focus, select:focus, textarea:focus{box-shadow:0 0 0 4px var(--ring); border-color:#5e9bff}
-  textarea{min-height:84px; resize:vertical}
-  .list{display:flex; flex-direction:column; gap:8px; margin-top:10px; max-height:420px; overflow:auto; padding-right:4px}
-  .item{background:#0f1623; border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:10px 12px}
-  .tiny{color:#9fb3d7; font-size:12px}
-  .events{margin-top:16px}
-  .two{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-  .foot{margin-top:10px; display:flex; gap:10px; align-items:center}
-  .hide{display:none}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Sentient Türkiye Community Map — GemBatu (production)</title>
+
+  <!-- Supabase -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+
+  <style>
+    :root{
+      --bg:#0e1420; --panel:#101826; --txt:#e5ecfb; --muted:#9fb0c8;
+      --edge:#20304b; --ring:#2a3b55; --grad1:#192742; --grad2:#0f1a2a;
+      --blue:#2563eb; --blue2:#1e40af;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--txt);
+      font:500 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg) center/cover fixed url("assets/bg.jpg");
+    }
+    .wrap{max-width:1120px; margin:28px auto 72px; padding:0 20px}
+    h1{margin:0 0 18px; font-size:22px}
+    h1 .pill{margin-left:8px; padding:2px 8px; font-size:12px; border-radius:999px;
+      background:#1b2942; border:1px solid var(--edge); color:#cde0ff}
+    h3{margin:0 0 10px; font-size:16px}
+
+    .grid{display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start}
+    .panel{
+      position:relative; z-index:1;
+      padding:18px; border-radius:14px;
+      background:linear-gradient(180deg,var(--grad1),var(--grad2));
+      border:1px solid var(--edge);
+      box-shadow:0 8px 28px rgba(0,0,0,.35);
+      backdrop-filter: blur(6px);
+    }
+    .panel.auth{z-index:3} .panel.browser{z-index:2} .panel.events{grid-column:1 / span 2}
+
+    .row{display:flex; align-items:center; gap:10px}
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      height:38px; padding:0 14px; border-radius:10px; cursor:pointer;
+      border:1px solid var(--ring); background:#122038; color:var(--txt);
+      text-decoration:none; user-select:none;
+    }
+    .btn.primary{background:linear-gradient(180deg,var(--blue),var(--blue2)); border-color:#1f3d8a}
+    .btn:active{transform:translateY(1px)}
+    .badge{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid var(--ring); background:#16243c; color:#cfe0ff}
+
+    select, input[type="text"], input[type="datetime-local"], textarea{
+      width:100%; height:40px; border-radius:10px; outline:none;
+      color:var(--txt); background:#0f1a26; border:1px solid #243653; padding:0 12px;
+    }
+    textarea{height:72px; padding:10px 12px; resize:vertical}
+    label{display:block; font-size:12px; color:var(--muted); margin:8px 0 6px}
+    .muted{color:var(--muted)}
+
+    .list{display:flex; flex-direction:column; gap:8px; margin-top:12px}
+    .item{padding:10px 12px; border:1px solid #22324d; background:#0e192b; border-radius:10px}
+
+    @media (max-width:900px){
+      .grid{grid-template-columns:1fr}
+      .panel.events{grid-column:auto}
+    }
+  </style>
 </head>
 <body>
-  <div class="bg" aria-hidden="true"></div>
   <div class="wrap">
-    <div class="header">
-      <span>Sentient Türkiye Community Map — GemBatu</span>
-      <span class="badge">production</span>
-    </div>
+    <h1>Sentient Türkiye Community Map — GemBatu <span class="pill">production</span></h1>
 
     <div class="grid">
-      <!-- LEFT: JOIN -->
-      <section class="panel" id="joinPanel">
+      <!-- LEFT: Join -->
+      <section class="panel auth">
         <h3>Join the map</h3>
-        <p class="tiny" id="whoami">You must connect Discord to add your city.</p>
-        <div class="row">
-          <button id="btnLogin" class="btn primary">Sign in with Discord</button>
-          <button id="btnLogout" class="btn hide">Sign out</button>
+        <p id="authNote" class="muted">You must connect Discord to add your city.</p>
+        <div class="row" style="margin-top:8px">
+          <a id="discordBtn" class="btn primary">Sign in with Discord</a>
         </div>
-        <div id="joinForm" class="hide" style="margin-top:12px;">
-          <label class="tiny">Select your city (Türkiye)</label>
-          <select id="selCity"></select>
-          <div class="row" style="justify-content:flex-start; margin-top:12px">
-            <button id="btnSave" class="btn">Save my entry</button>
+
+        <div id="joinForm" style="display:none; margin-top:14px">
+          <label>Select your city (Türkiye)</label>
+          <select id="joinCity"></select>
+          <div class="row" style="margin-top:10px">
+            <button id="saveEntry" class="btn primary">Save my entry</button>
           </div>
-          <p class="tiny" id="saveHint"></p>
+          <div id="meBox" class="muted" style="margin-top:8px"></div>
         </div>
       </section>
 
-      <!-- RIGHT: BROWSER -->
-      <section class="panel" id="browserPanel">
-        <div class="row" style="justify-content:space-between; align-items:center">
-          <h3 style="margin:0">City browser</h3>
+      <!-- RIGHT: Browser -->
+      <section class="panel browser">
+        <div class="row" style="justify-content:space-between">
           <div class="row" style="gap:8px">
-            <select id="filterCity" style="min-width:220px"></select>
-            <button id="btnShowAll" class="btn">Show all</button>
+            <select id="browserCity" style="min-width:220px"></select>
+            <span id="totalCount" class="badge">0 total members</span>
+            <span id="inCityCount" class="badge">0 in this city</span>
           </div>
+          <button id="showAll" class="btn">Show all</button>
         </div>
-        <div class="meta">
-          <span class="pill" id="mTotal">0 total members</span>
-          <span class="pill" id="mInCity">0 in this city</span>
+        <div id="memberList" class="list"></div>
+      </section>
+
+      <!-- EVENTS -->
+      <section class="panel events">
+        <h3>Community events</h3>
+        <div class="row" style="gap:8px; margin-top:8px">
+          <select id="eventCity" style="min-width:220px"></select>
         </div>
-        <div class="list" id="userList" aria-live="polite"></div>
+        <div style="margin-top:8px">
+          <input id="eventTitle" type="text" placeholder="Event title (e.g., Eskişehir meetup)"/>
+        </div>
+        <div class="row" style="gap:8px; margin-top:8px">
+          <input id="eventDate" type="datetime-local"/>
+          <input id="eventVenue" type="text" placeholder="Venue / address"/>
+        </div>
+        <div style="margin-top:8px">
+          <textarea id="eventDesc" placeholder="Short description (optional)"></textarea>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="createEvent" class="btn primary">Create event</button>
+        </div>
+
+        <div id="eventList" class="list"></div>
       </section>
     </div>
-
-    <!-- EVENTS -->
-    <section class="panel events" id="eventsPanel">
-      <h3>Community events</h3>
-      <div class="row" style="gap:8px">
-        <select id="eventCity" style="min-width:220px"></select>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <input id="eventTitle" placeholder="Event title (e.g., Eskişehir meetup)" />
-      </div>
-      <div class="two" style="margin-top:10px">
-        <input id="eventDate" type="datetime-local" />
-        <input id="eventVenue" placeholder="Venue / address" />
-      </div>
-      <div class="row" style="margin-top:10px">
-        <textarea id="eventDesc" placeholder="Short description (optional)"></textarea>
-      </div>
-      <div class="foot">
-        <button id="btnCreateEvent" class="btn">Create event</button>
-        <span class="tiny" id="eventHint"></span>
-      </div>
-      <div class="list" id="eventList" style="margin-top:10px"></div>
-    </section>
   </div>
 
-  <!-- Supabase JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" integrity="sha384-d7Qd8r2w0g9h8p1E5g5d2m0z2e1Qn3uYbQ8m1iYQ2+u0L7qkW1dYqv3X1tqX5mQy" crossorigin="anonymous"></script>
   <script>
-  // ---------- CONFIG (Senin projen) ----------
-  const SUPABASE_URL = "https://zooclwpqfwpzwosnqjem.supabase.co";
-  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvb2Nsd3BxZndwendvc25xamVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwODczNjUsImV4cCI6MjA3MTY2MzM2NX0.lCW2dSb7HV3vuXKNa_QFJ0o5I4522RE8CS-PDmOflk0";
+    /************ FIXED CONFIG (senin verdiğin değerler) ************/
+    const SB_URL  = "https://zooclwpqfwpzwosnqjem.supabase.co";
+    const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvb2Nsd3BxZndwendvc25xamVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwODczNjUsImV4cCI6MjA3MTY2MzM2NX0.lCW2dSb7HV3vuXKNa_QFJ0o5I4522RE8CS-PDmOflk0";
+    const DISCORD_CLIENT_ID = "1409378760029110422";   // ← Client ID
 
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-  });
+    const DISCORD_SCOPE = "identify";
+    // Çalıştığı domaini otomatik kullan (localhost / vercel).
+    const DISCORD_REDIRECT_URI = location.origin + location.pathname;
 
-  // ---------- CITIES ----------
-  const CITIES = [
-    "Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin",
-    "Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa",
-    "Çanakkale","Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum",
-    "Eskişehir","Gaziantep","Giresun","Gümüşhane","Hakkâri","Hatay","Iğdır","Isparta","İstanbul","İzmir",
-    "Kahramanmaraş","Karabük","Karaman","Kars","Kastamonu","Kayseri","Kırıkkale","Kırklareli","Kırşehir",
-    "Kilis","Kocaeli","Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir",
-    "Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Siirt","Sinop","Sivas","Şanlıurfa","Şırnak",
-    "Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"
-  ];
+    // Şehir listesi
+    const CITIES_TR = [
+      "Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin",
+      "Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa",
+      "Çanakkale","Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum",
+      "Eskişehir","Gaziantep","Giresun","Gümüşhane","Hakkari","Hatay","Iğdır","Isparta","İstanbul","İzmir",
+      "Kahramanmaraş","Karabük","Karaman","Kars","Kastamonu","Kayseri","Kırıkkale","Kırklareli","Kırşehir",
+      "Kilis","Kocaeli","Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir",
+      "Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Şanlıurfa","Siirt","Sinop","Şırnak","Sivas",
+      "Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"
+    ];
 
-  function fillSelect(el, firstLabel){
-    el.innerHTML = "";
-    const opt0 = document.createElement("option");
-    opt0.value = ""; opt0.textContent = firstLabel; el.appendChild(opt0);
-    CITIES.forEach(c => { const o = document.createElement("option"); o.value=c; o.textContent=c; el.appendChild(o); });
-  }
+    /************ INIT ************/
+    const supabase = window.supabase.createClient(SB_URL, SB_ANON);
 
-  // ---------- DOM ----------
-  const joinForm = document.getElementById('joinForm');
-  const whoami   = document.getElementById('whoami');
-  const btnLogin = document.getElementById('btnLogin');
-  const btnLogout= document.getElementById('btnLogout');
-  const selCity  = document.getElementById('selCity');
-  const btnSave  = document.getElementById('btnSave');
-  const saveHint = document.getElementById('saveHint');
+    // UI refs
+    const joinCity = document.getElementById('joinCity');
+    const saveEntryBtn = document.getElementById('saveEntry');
+    const meBox = document.getElementById('meBox');
+    const authNote = document.getElementById('authNote');
+    const discordBtn = document.getElementById('discordBtn');
 
-  const filterCity = document.getElementById('filterCity');
-  const btnShowAll = document.getElementById('btnShowAll');
-  const mTotal     = document.getElementById('mTotal');
-  const mInCity    = document.getElementById('mInCity');
-  const userList   = document.getElementById('userList');
+    const browserCity = document.getElementById('browserCity');
+    const totalCount = document.getElementById('totalCount');
+    const inCityCount = document.getElementById('inCityCount');
+    const memberList = document.getElementById('memberList');
+    const showAllBtn = document.getElementById('showAll');
 
-  const eventCity  = document.getElementById('eventCity');
-  const eventTitle = document.getElementById('eventTitle');
-  const eventDate  = document.getElementById('eventDate');
-  const eventVenue = document.getElementById('eventVenue');
-  const eventDesc  = document.getElementById('eventDesc');
-  const btnCreateEvent = document.getElementById('btnCreateEvent');
-  const eventHint  = document.getElementById('eventHint');
-  const eventList  = document.getElementById('eventList');
+    const eventCity = document.getElementById('eventCity');
+    const eventTitle = document.getElementById('eventTitle');
+    const eventDate = document.getElementById('eventDate');
+    const eventVenue = document.getElementById('eventVenue');
+    const eventDesc = document.getElementById('eventDesc');
+    const createEventBtn = document.getElementById('createEvent');
+    const eventList = document.getElementById('eventList');
 
-  fillSelect(selCity, "Select your city");
-  fillSelect(filterCity, "All cities");
-  fillSelect(eventCity, "Select city");
-
-  // ---------- AUTH ----------
-  btnLogin.onclick = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'discord',
-      options: { redirectTo: window.location.origin }
+    // Select’leri doldur
+    [joinCity,browserCity,eventCity].forEach(sel=>{
+      sel.innerHTML = CITIES_TR.map(c=>`<option value="${c}">${c}</option>`).join('');
     });
-  };
 
-  btnLogout.onclick = async () => {
-    await supabase.auth.signOut();
-    location.reload();
-  };
+    // Discord OAuth URL ve buton
+    const discordAuthUrl =
+      `https://discord.com/api/oauth2/authorize` +
+      `?client_id=${encodeURIComponent(DISCORD_CLIENT_ID)}` +
+      `&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}` +
+      `&response_type=token` +
+      `&scope=${encodeURIComponent(DISCORD_SCOPE)}`;
 
-  supabase.auth.onAuthStateChange(async (_evt, session) => {
-    if (session?.user) {
-      btnLogin.classList.add('hide');
-      btnLogout.classList.remove('hide');
-      whoami.textContent = `Signed in as ${session.user.user_metadata?.name || session.user.email || session.user.id}`;
-      joinForm.classList.remove('hide');
-      await ensureProfile(session.user);
-    } else {
-      btnLogin.classList.remove('hide');
-      btnLogout.classList.add('hide');
-      whoami.textContent = "You must connect Discord to add your city.";
-      joinForm.classList.add('hide');
+    discordBtn.setAttribute('href', discordAuthUrl);
+    discordBtn.setAttribute('target','_self');
+
+    // Redirect sonrası token varsa profil çek
+    (function handleDiscordRedirect(){
+      const hash = new URLSearchParams(location.hash.slice(1));
+      const token = hash.get('access_token');
+      if(!token) return;
+
+      history.replaceState(null,'',location.pathname + location.search);
+
+      fetch('https://discord.com/api/users/@me', { headers:{Authorization:`Bearer ${token}`} })
+        .then(r=>r.json())
+        .then(user=>{
+          document.getElementById('joinForm').style.display = 'block';
+          authNote.textContent = "Connected ✓ — select your city and save your entry.";
+          meBox.innerHTML = `Logged in as <strong>@${user.global_name || user.username}</strong>`;
+          localStorage.setItem('discord_user', JSON.stringify({
+            id: user.id, username: user.username, global_name: user.global_name || null
+          }));
+        })
+        .catch(console.error);
+    })();
+
+    /** Helpers **/
+    const el = (html)=>{ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstElementChild; };
+
+    /** Members **/
+    async function loadMembers(){
+      const { data, error } = await supabase.from('users').select('discord_id,username,city,created_at').order('created_at',{ascending:false});
+      if(error){ console.error(error); return; }
+      totalCount.textContent = `${data.length} total members`;
+      renderMemberList(data);
+      browserCity.onchange = ()=>renderMemberList(data);
+      showAllBtn.onclick = ()=>{ browserCity.value=""; renderMemberList(data,true); };
     }
-    await refreshLists();
-  });
-
-  async function ensureProfile(user){
-    // users table: discord_id(unique), username, city
-    const discordId = user.user_metadata?.provider_id || user.id;
-    const username  = user.user_metadata?.preferred_username || user.user_metadata?.full_name || user.user_metadata?.name || "DiscordUser";
-    // insert if not exists
-    await supabase.from('users')
-      .upsert({ discord_id: discordId, username, city: null }, { onConflict:'discord_id', ignoreDuplicates:false })
-  }
-
-  // ---------- SAVE CITY ----------
-  btnSave.onclick = async () => {
-    const city = selCity.value || null;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !city){ saveHint.textContent = "Please sign in and choose a city."; return; }
-    const discordId = user.user_metadata?.provider_id || user.id;
-
-    const { error } = await supabase.from('users').update({ city }).eq('discord_id', discordId);
-    saveHint.textContent = error ? ("Error: " + error.message) : "Saved ✅";
-    await refreshLists();
-  };
-
-  // ---------- LIST USERS ----------
-  filterCity.onchange = refreshLists;
-  btnShowAll.onclick  = () => { filterCity.value=""; refreshLists(); };
-
-  async function refreshLists(){
-    // users
-    let q = supabase.from('users').select('username, city').order('username', { ascending:true });
-    const city = filterCity.value;
-    if (city) q = q.eq('city', city);
-    const { data: users = [] } = await q;
-    const { data: all = [] } = await supabase.from('users').select('id', {count:'exact', head:true});
-
-    mTotal.textContent = `${all.length ?? users.length} total members`;
-    mInCity .textContent = `${city?users.length:0} in this city`;
-
-    userList.innerHTML = users.map(u =>
-      `<div class="item"><strong>@${escapeHtml(u.username || 'user')}</strong> <span class="tiny">— ${escapeHtml(u.city || '—')}</span></div>`
-    ).join('') || `<div class="item tiny">No members yet.</div>`;
-
-    // events (by selected city in eventsCity dropdown)
-    await refreshEvents();
-  }
-
-  // ---------- EVENTS ----------
-  btnCreateEvent.onclick = async () => {
-    eventHint.textContent = "";
-    const city = eventCity.value;
-    const title = eventTitle.value.trim();
-    const dt = eventDate.value ? new Date(eventDate.value).toISOString() : null;
-    const venue = eventVenue.value.trim();
-    const description = eventDesc.value.trim();
-
-    if (!title || !city || !dt){ eventHint.textContent = "Please fill city, title and date/time."; return; }
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user){ eventHint.textContent = "Sign in with Discord first."; return; }
-
-    // find profile id
-    const discordId = user.user_metadata?.provider_id || user.id;
-    const { data: me } = await supabase.from('users').select('id').eq('discord_id', discordId).single();
-
-    const { error } = await supabase.from('events').insert({
-      city, title, description, event_date: dt, venue, created_by: me?.id ?? null
-    });
-    eventHint.textContent = error ? ("Error: " + error.message) : "Event created 🎉";
-    if (!error){
-      eventTitle.value = ""; eventDate.value=""; eventVenue.value=""; eventDesc.value="";
+    function renderMemberList(all, showAll=false){
+      const c = browserCity.value;
+      const list = showAll || !c ? all : all.filter(x=>x.city===c);
+      inCityCount.textContent = `${list.length} in this city`;
+      memberList.innerHTML = list.length
+        ? list.map(u=>`<div class="item">
+            <div><strong>@${u.username}</strong> <span class="muted">• ${u.city}</span></div>
+            <div class="muted" style="font-size:12px">${new Date(u.created_at).toLocaleString()}</div>
+          </div>`).join('')
+        : `<div class="muted">No members yet.</div>`;
     }
-    await refreshEvents();
-  };
 
-  eventCity.onchange = refreshEvents;
+    /** Events **/
+    async function loadEvents(){
+      const { data, error } = await supabase.from('events')
+        .select('id, city, title, event_date, venue, description, created_at, users(username)')
+        .order('event_date', { ascending:true });
+      if(error){ console.error(error); return; }
+      renderEvents(data);
+      eventCity.onchange = ()=>renderEvents(data);
+    }
+    function renderEvents(all){
+      const c = eventCity.value;
+      const list = all.filter(x=>x.city===c);
+      eventList.innerHTML = list.length
+        ? list.map(e=>{
+            const when = new Date(e.event_date).toLocaleString();
+            const by = e.users?.username ? `by @${e.users.username}` : '';
+            return `<div class="item">
+              <div><strong>${e.title}</strong> <span class="muted">· ${e.city}</span></div>
+              <div class="muted" style="font-size:13px">${when} — ${e.venue || '-'}</div>
+              ${e.description ? `<div class="muted" style="margin-top:4px">${e.description}</div>`:''}
+              <div class="muted" style="font-size:12px; margin-top:6px">${by}</div>
+            </div>`;
+          }).join('')
+        : `<div class="muted">No events for this city yet.</div>`;
+    }
 
-  async function refreshEvents(){
-    const c = eventCity.value;
-    let q = supabase.from('events').select('id, city, title, event_date, venue, description, created_at').order('event_date', {ascending:true});
-    if (c) q = q.eq('city', c);
-    const { data: rows = [] } = await q;
+    /** Actions **/
+    document.getElementById('saveEntry').onclick = async ()=>{
+      const u = JSON.parse(localStorage.getItem('discord_user')||'null');
+      if(!u){ alert('Please sign in with Discord first.'); return; }
+      const city = joinCity.value;
+      const username = (u.global_name || u.username || '').toString();
+      const { error } = await supabase.from('users').upsert(
+        { discord_id: u.id, username, city }, { onConflict:'discord_id' }
+      );
+      if(error){ alert('Save failed.'); console.error(error); return; }
+      alert('Saved!'); loadMembers();
+    };
 
-    eventList.innerHTML = rows.map(e => {
-      const when = new Date(e.event_date).toLocaleString();
-      return `<div class="item">
-        <div><strong>${escapeHtml(e.title)}</strong> <span class="tiny">· ${escapeHtml(e.city)}</span></div>
-        <div class="tiny">${when} — ${escapeHtml(e.venue || '')}</div>
-        ${e.description ? `<div class="tiny" style="margin-top:4px">${escapeHtml(e.description)}</div>`:''}
-      </div>`
-    }).join('') || `<div class="item tiny">No events for this city yet.</div>`;
-  }
+    document.getElementById('createEvent').onclick = async ()=>{
+      const u = JSON.parse(localStorage.getItem('discord_user')||'null');
+      if(!u){ alert('Please sign in with Discord first.'); return; }
 
-  // ---------- UTIL ----------
-  function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+      const payload = {
+        city: eventCity.value,
+        title: eventTitle.value.trim(),
+        description: eventDesc.value.trim() || null,
+        event_date: eventDate.value ? new Date(eventDate.value).toISOString() : null,
+        venue: eventVenue.value.trim() || null
+      };
+      if(!payload.title || !payload.event_date){ alert('Please enter title and date.'); return; }
 
-  // Kick-off for direct landings (no session yet)
-  (async ()=>{ await refreshLists(); })();
+      // creator eşleştirme
+      const { data: me } = await supabase.from('users').select('id').eq('discord_id', u.id).single();
+      if(!me){ alert('Add yourself to the map first (save entry).'); return; }
+
+      const { error } = await supabase.from('events').insert({ ...payload, created_by: me.id });
+      if(error){ alert('Create failed.'); console.error(error); return; }
+
+      eventTitle.value=''; eventVenue.value=''; eventDesc.value=''; eventDate.value='';
+      loadEvents();
+    };
+
+    // boot
+    (async()=>{ await loadMembers(); await loadEvents(); })();
   </script>
 </body>
 </html>
