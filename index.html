@@ -10,9 +10,23 @@
     --bg:#0f172a; --panel:#111827cc; --panel-solid:#0b1220; --text:#e5e7eb; --muted:#94a3b8;
     --accent:#60a5fa; --ring:#1d4ed8; --ok:#22c55e; --err:#ef4444; --radius:14px; --shadow:0 8px 40px rgba(0,0,0,.35);
   }
-  /* Olası eklenti maskelerini etkisiz bırak */
-  #zkpass-mask, #zkpass-mask *{pointer-events:none!important} #zkpass-mask{display:none!important}
-  #app{position:relative; z-index:999!important} #app *{pointer-events:auto}
+
+  /* ============================== */
+  /*  🔧 Overlay killer – BUTON FIX  */
+  /* ============================== */
+  /* Bazı eklentilerin en üste koyduğu maskeleri kapat */
+  #zkpass-mask, #zkpass-mask *, 
+  .grecaptcha-badge, .cf-challenge, .cf-turnstile, 
+  [class*="overlay"], [class*="mask"], [id*="overlay"], [id*="mask"] {
+    pointer-events: none !important;
+  }
+  /* Panel ve butonları yüksek katmana al */
+  .panel{ position:relative; z-index: 20; }
+  button{ position:relative; z-index: 50; pointer-events: auto !important; }
+  /* Safari iOS tıklama sapıtmalarını azalt */
+  * { -webkit-tap-highlight-color: transparent; }
+  /* ============================== */
+
   html,body{height:100%}
   body{margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--text); background:var(--bg)}
   .bg{position:fixed; inset:0; z-index:0; background:
@@ -127,22 +141,18 @@
 
 <script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
-/* ------------ CONFIG (kendi verdiğin değerler) ------------ */
 const SUPABASE_URL  = "https://zooclwpqfwpzwosnqjem.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvb2Nsd3BxZndwendvc25xamVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwODczNjUsImV4cCI6MjA3MTY2MzM2NX0.lCW2dSb7HV3vuXKNa_QFJ0o5I4522RE8CS-PDmOflk0";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { auth:{ persistSession:true, detectSessionInUrl:true } });
 
-/* ------------ DOM ------------ */
 const $ = s => document.querySelector(s);
 const joinCity = $('#city-select'), browserCity = $('#browser-city'), eventCity = $('#event-city');
 const memberList = $('#member-list'), eventList = $('#event-list');
 const kpiTotal = $('#kpi-total'), kpiCity = $('#kpi-city'), authState = $('#auth-state'), hint = $('#event-hint');
 
-/* ------------ Cities (81 il) ------------ */
 const TR_CITIES = ["Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin","Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa","Çanakkale","Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum","Eskişehir","Gaziantep","Giresun","Gümüşhane","Hakkâri","Hatay","Iğdır","Isparta","İstanbul","İzmir","Kahramanmaraş","Karabük","Karaman","Kars","Kastamonu","Kayseri","Kırıkkale","Kırklareli","Kırşehir","Kilis","Kocaeli","Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir","Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Siirt","Sinop","Sivas","Şanlıurfa","Şırnak","Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"];
 const fill = sel => sel.innerHTML = TR_CITIES.map(c=>`<option value="${c}">${c}</option>`).join('');
 
-/* ------------ Helpers ------------ */
 const nameFromMeta = u => {
   const m = u?.user_metadata||{};
   return m.user_name ? '@'+m.user_name : (m.full_name||m.name||u?.email||'Unknown');
@@ -151,7 +161,6 @@ const discordIdFromMeta = u => (u?.user_metadata?.provider_id || u?.user_metadat
 const fmt = s => { try{ return new Date(s).toLocaleString() }catch{ return s } };
 const toast = (t, ok=true)=>{ hint.textContent=t; hint.style.color=ok?'var(--ok)':'var(--err)'; setTimeout(()=>hint.textContent='',3500) };
 
-/* ------------ Render Members & Totals ------------ */
 async function refreshTotals(city){
   const { count: total } = await sb.from('users').select('id', {count:'exact', head:true});
   kpiTotal.textContent = `${total||0} total members`;
@@ -171,7 +180,6 @@ async function renderMembers(city){
   });
 }
 
-/* ------------ Render Events ------------ */
 async function renderEvents(city){
   const { data, error } = await sb.from('events').select('*').eq('city', city).order('event_date',{ascending:true});
   eventList.innerHTML='';
@@ -183,7 +191,6 @@ async function renderEvents(city){
   });
 }
 
-/* ------------ Auth UI ------------ */
 async function setAuthUI(){
   const { data:{session} } = await sb.auth.getSession();
   if(session?.user){ authState.textContent = `Connected as ${nameFromMeta(session.user)}`; $('#btn-discord').disabled = true; }
@@ -193,7 +200,6 @@ async function signInDiscord(){
   await sb.auth.signInWithOAuth({ provider:'discord', options:{ redirectTo: window.location.origin + '/', queryParams:{prompt:'consent'} } });
 }
 
-/* ------------ Save Entry (users) ------------ */
 async function saveEntry(){
   const { data:{session} } = await sb.auth.getSession();
   if(!session?.user){ alert('Please sign in with Discord first.'); return; }
@@ -211,7 +217,6 @@ async function saveEntry(){
   toast('Saved ✅');
 }
 
-/* ------------ Create Event ------------ */
 async function createEvent(){
   const { data:{session} } = await sb.auth.getSession();
   if(!session?.user){ alert('Please sign in first.'); return; }
@@ -231,7 +236,6 @@ async function createEvent(){
   toast('Event created 🎉');
 }
 
-/* ------------ Realtime ------------ */
 function wireRealtime(){
   sb.channel('rt-users').on('postgres_changes',{event:'*',schema:'public',table:'users'}, async ()=>{ 
     await refreshTotals(browserCity.value); await renderMembers(browserCity.value);
@@ -241,7 +245,6 @@ function wireRealtime(){
   }).subscribe();
 }
 
-/* ------------ Init ------------ */
 (async function init(){
   [joinCity, browserCity, eventCity].forEach(fill);
   const def="Adana"; joinCity.value=def; browserCity.value=def; eventCity.value=def;
