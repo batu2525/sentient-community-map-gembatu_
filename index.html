@@ -1,56 +1,114 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sentient Türkiye Community Map — GemBatu</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@600&display=swap" rel="stylesheet">
+
   <style>
     :root{
-      --bg:#0f1422; --panel:#111a2a; --panel2:#0d1726; --text:#e7eefc; --muted:#9db2cc;
-      --accent:#5aa7ff; --accent-2:#9cd1ff; --ring:0 0 0 2px rgba(90,167,255,.35);
+      --bg:#0f1521;
+      --panel:#111a2b;
+      --panel-2:#0d1627;
+      --text:#e9eefb;
+      --muted:#a9b4cc;
+      --accent:#5da8ff;
+      --good:#2ecc71;
+      --chip:#1b2740;
+      --chipText:#cfe0ff;
+      --danger:#ff5b5b;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
-      margin:0; color:var(--text); background:var(--bg) center/cover fixed;
+      margin:0; color:var(--text); background:var(--bg);
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      line-height:1.35; overflow-y:overlay;
+      /* background image */
       background-image:url("/assets/bg.jpg");
-      font:16px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,Apple Color Emoji,Segoe UI Emoji;
+      background-size:cover; background-position:center; background-attachment:fixed;
     }
-    .wrap{max-width:1100px;margin:48px auto;padding:0 16px;}
-    h1{font-size:22px;margin:0 0 12px;display:flex;gap:12px;align-items:center}
-    .badge{font-size:12px;color:#0b1220;background:#d9ecff;padding:2px 8px;border-radius:999px}
-    .grid{display:grid;gap:16px;grid-template-columns:1fr 1fr;}
-    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+    .scrim{
+      position:fixed; inset:0; pointer-events:none;
+      background:linear-gradient(180deg, rgba(15,21,33,.65), rgba(15,21,33,.55));
+      z-index:0;
+    }
+    .wrap{
+      position:relative; z-index:1;
+      max-width:1100px; margin:40px auto 120px; padding:0 16px;
+    }
+    h1{
+      font-family:"Space Grotesk",Inter,system-ui;
+      font-size:22px; font-weight:600; letter-spacing:.2px;
+      display:flex; align-items:center; gap:8px; margin:0 0 14px;
+    }
+    .badge{font-size:12px;background:#233252;color:#cfe0ff;border-radius:999px;padding:4px 8px}
+
+    .grid{
+      display:grid; gap:18px;
+      grid-template-columns:1fr 1fr;
+    }
+    @media (max-width:900px){ .grid{grid-template-columns:1fr} }
+
     .card{
-      background:linear-gradient(180deg, var(--panel), var(--panel2));
+      background:linear-gradient(180deg, var(--panel), var(--panel-2));
       border:1px solid rgba(255,255,255,.06);
-      border-radius:14px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.3);
-      backdrop-filter:saturate(1.1) blur(2px);
+      border-radius:14px; padding:18px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
     }
-    .title{font-weight:600;margin-bottom:8px}
-    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-    .row{display:flex;gap:10px;align-items:center}
-    select,input,button,textarea{
-      width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.08);
-      background:#0b1322;color:var(--text);outline:none;transition:.15s;
+    .card h2{font-size:14px; letter-spacing:.4px; margin:0 0 10px; color:#cfe0ff}
+
+    .row{display:flex; gap:10px; align-items:center}
+
+    .btn{
+      appearance:none; border:0; border-radius:10px; padding:10px 14px;
+      background:#1b5cff; color:white; font-weight:600; cursor:pointer;
+      box-shadow:0 6px 16px rgba(27,92,255,.35);
+      transition:transform .05s ease, filter .2s ease; user-select:none;
     }
-    select:focus,input:focus,textarea:focus{box-shadow:var(--ring);border-color:#3a8fff}
-    button{
-      cursor:pointer;background:linear-gradient(180deg,#2e7bff,#1f5ed8);
-      border:1px solid #2b67e0;font-weight:600;
+    .btn:active{ transform:translateY(1px) }
+    .btn:disabled{filter:grayscale(.7); opacity:.6; cursor:not-allowed}
+
+    .btn-secondary{background:#253658; color:#e9eefb; box-shadow:none}
+    .btn-ghost{background:#1a2339; color:#d8e6ff; box-shadow:none; border:1px solid rgba(255,255,255,.07)}
+
+    .select, .input{
+      width:100%; background:#0e1729; color:var(--text);
+      border:1px solid rgba(255,255,255,.1); border-radius:10px;
+      padding:11px 12px; outline:none; font:inherit;
     }
-    button:hover{filter:brightness(1.05)}
-    .muted{color:var(--muted)}
-    .toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
-    ul.members{list-style:none;margin:10px 0 0;padding:0;max-height:360px;overflow:auto}
-    ul.members li{padding:10px 12px;border-radius:10px;background:#0c1526;border:1px solid rgba(255,255,255,.06);margin-bottom:8px}
-    .pill{font-size:12px;padding:2px 8px;border-radius:999px;background:#0e1a30;border:1px solid rgba(255,255,255,.06);color:var(--accent-2)}
-    .right{display:flex;gap:8px;align-items:center}
+    .input::placeholder{color:#7f8aa6}
+    .muted{color:var(--muted); font-size:12px}
+
+    .chips{display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px}
+    .chip{background:var(--chip); color:var(--chipText); padding:6px 8px; border-radius:999px; font-size:12px}
+
+    .list{display:flex; flex-direction:column; gap:8px; margin-top:10px}
+    .item{
+      background:#0c1322; border:1px solid rgba(255,255,255,.06);
+      border-radius:10px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center;
+    }
+    .empty{color:#94a3c7; font-size:13px; padding:12px}
+
+    /* Events */
+    .events-form .row{gap:10px}
+    .events-form .col{flex:1}
+    .events-form .col-2{flex:2}
+    .events-form .col-3{flex:3}
+    .divider{height:1px;background:rgba(255,255,255,.06); margin:14px 0}
+    .good{color:var(--good)}
+    .danger{color:var(--danger)}
+
+    /* Z-index fix so everything is clickable */
+    .card, .btn, .input, .select { position:relative; z-index:2 }
   </style>
 </head>
 <body>
+  <div class="scrim"></div>
   <div class="wrap">
     <h1>
       Sentient Türkiye Community Map — GemBatu
@@ -58,179 +116,274 @@
     </h1>
 
     <div class="grid">
-      <!-- LEFT: Join the map -->
-      <section class="card">
-        <div class="title">Join the map</div>
-        <p class="muted" id="loginHint">You must connect Discord to add your city.</p>
-        <div class="row" style="margin-bottom:10px">
-          <button id="discordBtn" style="max-width:240px">Sign in with Discord</button>
-          <span id="whoami" class="muted"></span>
+      <!-- Left: Join -->
+      <div class="card" id="joinCard">
+        <h2>Join the map</h2>
+        <p class="muted" id="joinHint">You must connect Discord to add your city.</p>
+
+        <div class="row" style="margin-top:6px;">
+          <button class="btn" id="btnDiscord">Sign in with Discord</button>
         </div>
 
-        <label for="citySelect">Select your city (Türkiye)</label>
-        <select id="citySelect"></select>
-
-        <div class="row" style="margin-top:10px">
-          <button id="saveBtn" style="max-width:180px">Save my entry</button>
+        <div class="row" style="margin-top:12px;">
+          <select id="citySelect" class="select" disabled></select>
         </div>
-      </section>
 
-      <!-- RIGHT: City browser -->
-      <section class="card">
-        <div class="toolbar">
-          <div class="title">City browser</div>
-          <div class="right">
-            <select id="browserCity" style="min-width:180px"></select>
-            <button id="showAllBtn" title="Show everyone">Show all</button>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn btn-secondary" id="btnSaveCity" disabled>Save my entry</button>
+        </div>
+      </div>
+
+      <!-- Right: Browser -->
+      <div class="card">
+        <h2>City browser</h2>
+
+        <div class="row" style="gap:8px">
+          <select id="browserCity" class="select"></select>
+          <button class="btn-ghost" id="btnShowAll">Show all</button>
+        </div>
+
+        <div class="chips">
+          <span class="chip" id="chipTotal">0 total members</span>
+          <span class="chip" id="chipCity">0 in this city</span>
+        </div>
+
+        <div id="membersList" class="list"></div>
+      </div>
+    </div>
+
+    <!-- Events -->
+    <div class="card" style="margin-top:18px;">
+      <h2>Community events</h2>
+
+      <div class="row" style="gap:8px; margin-bottom:8px;">
+        <select id="eventsCity" class="select" style="max-width:320px"></select>
+        <div class="muted" id="eventsInfo">Only signed-in users can create events.</div>
+      </div>
+
+      <form id="formEvent" class="events-form" autocomplete="off">
+        <div class="row" style="flex-wrap:wrap">
+          <div class="col-3">
+            <input id="eventTitle" class="input" type="text" placeholder="Event title (e.g., Eskişehir meetup)" />
+          </div>
+          <div class="col">
+            <input id="eventDate" class="input" type="datetime-local" />
+          </div>
+          <div class="col-2">
+            <input id="eventVenue" class="input" type="text" placeholder="Venue / address" />
           </div>
         </div>
-        <div class="row" style="gap:8px">
-          <span class="pill"><span id="membersCounter">0</span> total members</span>
-          <span class="pill"><span id="cityCounter">0</span> in this city</span>
+        <div class="row" style="margin-top:8px;">
+          <input id="eventDesc" class="input" type="text" placeholder="Short description (optional)" />
         </div>
-        <ul id="membersList" class="members"><li class="muted">No members yet.</li></ul>
-      </section>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" type="submit" id="btnCreateEvent">Create event</button>
+        </div>
+      </form>
+
+      <div class="divider"></div>
+      <div id="eventsList" class="list"></div>
     </div>
   </div>
 
+  <!-- Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   <script>
-    // --- 0) CONFIG ---
-    const SUPABASE_URL = 'https://zooclwpqfwpzwosnqjem.supabase.co';
-    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvb2Nsd3BxZndwendvc25xamVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwODczNjUsImV4cCI6MjA3MTY2MzM2NX0.lCW2dSb7HV3vuXKNa_QFJ0o5I4522RE8CS-PDmOflk0';
+    // ---------- CONFIG ----------
+    const SUPABASE_URL = "https://zooclwpqfwpzwosnqjem.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvb2Nsd3BxZndwendvc25xamVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwODczNjUsImV4cCI6MjA3MTY2MzM2NX0.lCW2dSb7HV3vuXKNa_QFJ0o5I4522RE8CS-PDmOflk0";
+    const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true }
+    });
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-    // --- 1) CITY LISTS ---
-    const citiesTR = [
+    // 81 il (kısaltılmış: tam liste)
+    const CITIES = [
       "Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin",
-      "Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa",
-      "Çanakkale","Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum",
-      "Eskişehir","Gaziantep","Giresun","Gümüşhane","Hakkari","Hatay","Iğdır","Isparta","İstanbul","İzmir",
-      "Kahramanmaraş","Karabük","Karaman","Kars","Kastamonu","Kayseri","Kilis","Kırıkkale","Kırklareli",
-      "Kırşehir","Kocaeli","Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir",
-      "Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Siirt","Sinop","Sivas","Şanlıurfa","Şırnak",
-      "Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"
+      "Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur",
+      "Bursa","Çanakkale","Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan",
+      "Erzurum","Eskişehir","Gaziantep","Giresun","Gümüşhane","Hakkâri","Hatay","Iğdır","Isparta","İstanbul",
+      "İzmir","Kahramanmaraş","Karabük","Karaman","Kars","Kastamonu","Kayseri","Kırıkkale","Kırklareli","Kırşehir",
+      "Kilis","Kocaeli","Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş",
+      "Nevşehir","Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Siirt","Sinop","Sivas",
+      "Şanlıurfa","Şırnak","Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"
     ];
-    function fillCitySelect(el, addAll=false){
-      el.innerHTML='';
-      if(addAll){ const opt=document.createElement('option'); opt.value='All cities'; opt.textContent='All cities'; el.appendChild(opt); }
-      citiesTR.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; el.appendChild(o); });
-    }
+
+    // Elmanları çek
+    const btnDiscord = document.getElementById('btnDiscord');
     const citySelect = document.getElementById('citySelect');
+    const btnSaveCity = document.getElementById('btnSaveCity');
+
     const browserCity = document.getElementById('browserCity');
-    fillCitySelect(citySelect);
-    fillCitySelect(browserCity,true);
+    const btnShowAll = document.getElementById('btnShowAll');
+    const membersList = document.getElementById('membersList');
+    const chipTotal = document.getElementById('chipTotal');
+    const chipCity = document.getElementById('chipCity');
 
-    // --- 2) AUTH (Discord) ---
-    const discordBtn = document.getElementById('discordBtn');
-    const whoami = document.getElementById('whoami');
-    const loginHint = document.getElementById('loginHint');
+    const eventsCity = document.getElementById('eventsCity');
+    const formEvent = document.getElementById('formEvent');
+    const eventTitle = document.getElementById('eventTitle');
+    const eventDate = document.getElementById('eventDate');
+    const eventVenue = document.getElementById('eventVenue');
+    const eventDesc  = document.getElementById('eventDesc');
+    const eventsList = document.getElementById('eventsList');
+    const joinHint   = document.getElementById('joinHint');
+    const eventsInfo = document.getElementById('eventsInfo');
 
-    async function signInWithDiscord(){
-      const redirectTo = window.location.origin; // vercel domaininiz otomatik
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'discord',
-        options: { redirectTo, scopes: 'identify' }
+    // Select'leri doldur
+    for (const c of CITIES){
+      [citySelect, browserCity, eventsCity].forEach(sel=>{
+        const opt=document.createElement('option'); opt.value=c; opt.textContent=c; sel.appendChild(opt.cloneNode(true));
       });
-      if(error) alert('Discord sign-in failed: '+error.message);
     }
-    discordBtn.addEventListener('click', signInWithDiscord);
 
-    async function setWhoAmI(){
-      const { data:{user} } = await supabase.auth.getUser();
-      if(user){
-        const m = user.user_metadata||{};
-        const name = m.global_name || m.username || m.full_name || m.name || 'Discord User';
-        whoami.textContent = `@${name}`;
-        loginHint.textContent = 'Connected. Pick your city and save.';
-        discordBtn.textContent = 'Connected ✓';
-        discordBtn.disabled = true;
-      } else {
-        whoami.textContent = '';
-        loginHint.textContent = 'You must connect Discord to add your city.';
-        discordBtn.textContent = 'Sign in with Discord';
-        discordBtn.disabled = false;
+    // ---- Helpers ----
+    const fmt = (d)=> new Date(d).toLocaleString('tr-TR',{dateStyle:'medium', timeStyle:'short'});
+
+    async function refreshMembersUI(cityFilter = null){
+      // Toplam üye
+      const {count: totalCount} = await supa.from('users').select('*', {count:'exact', head:true});
+      chipTotal.textContent = `${totalCount||0} total members`;
+
+      // Liste (şehir filtresi)
+      let query = supa.from('users').select('username, city').order('username', {ascending: true});
+      if (cityFilter) query = query.eq('city', cityFilter);
+
+      const { data, error } = await query;
+      membersList.innerHTML = '';
+      if (error){ membersList.innerHTML = `<div class="empty danger">Error: ${error.message}</div>`; return; }
+
+      chipCity.textContent = `${(data||[]).length} in this city`;
+
+      if (!data || data.length===0){
+        membersList.innerHTML = `<div class="empty">No members yet.</div>`;
+        return;
+      }
+      for (const row of data){
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.innerHTML = `<div>@${row.username||'unknown'}</div><div class="muted">${row.city||'-'}</div>`;
+        membersList.appendChild(el);
       }
     }
 
-    // --- 3) SAVE CITY (RLS uyumlu upsert: id = user.id ZORUNLU) ---
-    const saveBtn = document.getElementById('saveBtn');
-    saveBtn.addEventListener('click', saveCity);
+    async function refreshEventsUI(city){
+      const { data, error } = await supa
+        .from('events')
+        .select('id, title, city, description, venue, event_date, created_by, users(username)')
+        .eq('city', city)
+        .order('event_date', { ascending:true });
 
-    async function saveCity(){
-      const { data:{user}, error:authErr } = await supabase.auth.getUser();
-      if(authErr || !user){ alert('Please sign in with Discord first.'); return; }
+      eventsList.innerHTML = '';
+      if (error){ eventsList.innerHTML = `<div class="empty danger">Error: ${error.message}</div>`; return; }
+      if (!data || data.length===0){ eventsList.innerHTML = `<div class="empty">No events for this city yet.</div>`; return; }
+
+      for (const ev of data){
+        const by = ev.users?.username ? `@${ev.users.username}` : 'someone';
+        const el = document.createElement('div');
+        el.className='item';
+        el.innerHTML = `
+          <div>
+            <div style="font-weight:600">${ev.title}</div>
+            <div class="muted">${fmt(ev.event_date)} — ${ev.venue||'-'}</div>
+            ${ev.description ? `<div class="muted">${ev.description}</div>`:''}
+          </div>
+          <div class="muted">by ${by}</div>
+        `;
+        eventsList.appendChild(el);
+      }
+    }
+
+    async function loadSession(){
+      const { data:{session} } = await supa.auth.getSession();
+      if (!session){
+        // signed-out
+        btnDiscord.disabled=false;
+        citySelect.disabled=true; btnSaveCity.disabled=true;
+        joinHint.textContent = "You must connect Discord to add your city.";
+        eventsInfo.textContent = "Only signed-in users can create events.";
+        formEvent.style.display = 'none';
+      }else{
+        const user = session.user;
+        btnDiscord.textContent = "Connected";
+        btnDiscord.disabled = true;
+
+        citySelect.disabled=false; btnSaveCity.disabled=false;
+        joinHint.innerHTML = `Signed in as <b>@${user.user_metadata?.user_name || user.user_metadata?.full_name || 'discord-user'}</b>. Select your city and save.`;
+
+        // Events form aktif
+        eventsInfo.innerHTML = `<span class="good">Signed in:</span> you can create events.`;
+        formEvent.style.display = 'block';
+      }
+      // initial loads
+      await refreshMembersUI(browserCity.value);
+      await refreshEventsUI(eventsCity.value);
+    }
+
+    // ---- Handlers ----
+    btnDiscord.addEventListener('click', async ()=>{
+      btnDiscord.disabled = true;
+      const redirectTo = window.location.origin + '/';
+      const { error } = await supa.auth.signInWithOAuth({
+        provider:'discord',
+        options:{ redirectTo }
+      });
+      if (error){ alert('Discord auth error: ' + error.message); btnDiscord.disabled=false; }
+    });
+
+    btnSaveCity.addEventListener('click', async ()=>{
+      const { data:{session} } = await supa.auth.getSession();
+      if (!session){ alert('Please sign in first.'); return; }
+      const user = session.user;
 
       const city = citySelect.value;
-      if(!city){ alert('Pick a city'); return; }
+      const username = user.user_metadata?.user_name || user.user_metadata?.full_name || 'discord-user';
 
-      const meta = user.user_metadata || {};
-      const nickname =
-        meta.global_name || meta.username || meta.preferred_username ||
-        meta.full_name  || meta.name     || 'Discord User';
+      // upsert users row (id = auth.user.id)
+      const { error } = await supa
+        .from('users')
+        .upsert({ id: user.id, username, city }, { onConflict:'id' });
 
-      const { error } = await supabase.from('users').upsert({
-        id: user.id,                 // <<< KRİTİK: RLS için auth.uid()
-        discord_id: user.id,
-        username: nickname,
-        city
-      });
-
-      if(error){
-        console.error(error);
-        alert('Save failed: '+error.message);
-        return;
-      }
-      await refreshCityList(); // sağ paneli tazele
-      alert('Saved!');
-    }
-
-    // --- 4) CITY BROWSER ---
-    const membersList = document.getElementById('membersList');
-    const membersCounter = document.getElementById('membersCounter');
-    const cityCounter = document.getElementById('cityCounter');
-    document.getElementById('showAllBtn').addEventListener('click', ()=>{
-      browserCity.value = 'All cities';
-      refreshCityList();
+      if (error){ alert('Save error: ' + error.message); return; }
+      await refreshMembersUI(browserCity.value);
+      alert('Your city has been saved.');
     });
-    browserCity.addEventListener('change', refreshCityList);
 
-    async function refreshCityList(){
-      const chosen = browserCity.value;
-      let q = supabase.from('users').select('username, city');
-      if(chosen && chosen!=='All cities') q = q.eq('city', chosen);
+    browserCity.addEventListener('change', ()=> refreshMembersUI(browserCity.value));
+    btnShowAll.addEventListener('click', ()=>{ browserCity.value = browserCity.options[0].value; refreshMembersUI(null); });
 
-      const { data, error } = await q.order('username', { ascending:true });
+    eventsCity.addEventListener('change', ()=> refreshEventsUI(eventsCity.value));
 
-      membersList.innerHTML='';
-      if(error){
-        membersList.innerHTML = `<li class="muted">Error loading members.</li>`;
-        membersCounter.textContent='0'; cityCounter.textContent='0';
-        return;
-      }
-      membersCounter.textContent = String(data.length);
+    formEvent.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const { data:{session} } = await supa.auth.getSession();
+      if (!session){ alert('Please sign in first.'); return; }
 
-      if(chosen && chosen!=='All cities'){
-        cityCounter.parentElement.style.display='';
-        cityCounter.textContent = String(data.length);
-      }else{
-        cityCounter.parentElement.style.display='none';
-      }
+      const city = eventsCity.value;
+      const title = eventTitle.value.trim();
+      const dt    = eventDate.value;
+      const venue = eventVenue.value.trim();
+      const desc  = eventDesc.value.trim();
 
-      if(!data.length){
-        membersList.innerHTML = `<li class="muted">No members yet.</li>`;
-        return;
-      }
-      data.forEach(r=>{
-        const li=document.createElement('li');
-        li.textContent = `@${r.username} — ${r.city}`;
-        membersList.appendChild(li);
+      if (!title || !dt){ alert('Please enter title and date.'); return; }
+
+      const { error } = await supa.from('events').insert({
+        id: crypto.randomUUID(),
+        city, title, description: desc, venue,
+        event_date: new Date(dt).toISOString(),
+        created_by: session.user.id
       });
-    }
+      if (error){ alert('Create error: ' + error.message); return; }
 
-    // --- 5) İlk yükte auth & listeyi toparla ---
-    setWhoAmI().then(refreshCityList);
-    supabase.auth.onAuthStateChange((_e)=>{ setWhoAmI(); refreshCityList(); });
+      eventTitle.value=''; eventDate.value=''; eventVenue.value=''; eventDesc.value='';
+      await refreshEventsUI(city);
+      alert('Event created.');
+    });
+
+    // Auth state change (örn. giriş sonrası dönüş)
+    supa.auth.onAuthStateChange((_e, _s)=> loadSession());
+
+    // Start
+    loadSession();
   </script>
 </body>
 </html>
