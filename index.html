@@ -5,19 +5,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Sentient Türkiye Community Map — GemBatu (production)</title>
 
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-  <!-- Supabase JS -->
   <script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 
   <style>
     :root{
       --bg:#0E1525;
       --panel:#0F1828;
-      --panel2:#111B2D;
       --text:#E9F0FF;
       --muted:#9FB0C8;
       --accent:#5F9BFF;
@@ -27,45 +24,40 @@
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
-      margin:0;
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-      color:var(--text);
-      background:var(--bg);
+      margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      color:var(--text); background:var(--bg);
+      position:relative; overflow-x:hidden;
     }
 
-    /* sabit arka plan görsel — tıklamaları engellemesin */
+    /* Arka plan görseli: tıklamaları asla kapatmasın */
     .bg{
       position:fixed; inset:0;
-      background:url("./assets/bg.jpg") center / cover no-repeat;
-      filter: none;
-      pointer-events:none;   /* <-- kritik: asla tıklama kaplamasın */
-      z-index:0;
+      background:url("./assets/bg.jpg") center / cover no-repeat fixed;
+      z-index:0; pointer-events:none !important;
     }
 
-    .wrap{position:relative; z-index:1; max-width:1120px; margin:32px auto 120px; padding:0 16px}
+    .wrap{position:relative; z-index:10; max-width:1120px; margin:32px auto 120px; padding:0 16px}
     h1{margin:0 0 16px; font-size:20px; font-weight:700; letter-spacing:.2px}
     .badge{display:inline-block; margin-left:8px; font-size:11px; padding:3px 8px; border-radius:999px; background:var(--chip); color:var(--muted); border:1px solid var(--border)}
 
     .grid{display:grid; grid-template-columns:1fr 1fr; gap:16px}
     .panel{
+      position:relative; z-index:15;
       background:rgba(15,24,40,.88);
       border:1px solid var(--border);
-      border-radius:14px;
-      padding:16px;
+      border-radius:14px; padding:16px;
       backdrop-filter:blur(6px);
       box-shadow:0 6px 24px rgba(0,0,0,.28);
     }
-
     .title{font-weight:600; margin-bottom:12px}
     .muted{color:var(--muted); font-size:12px}
-
     label{display:block; font-size:12px; color:var(--muted); margin:6px 0 6px}
+
     input,select,textarea{
       width:100%; padding:11px 12px; border-radius:10px;
       background:#0F1626; border:1px solid var(--border); color:var(--text); outline:none
     }
     textarea{min-height:62px; resize:vertical}
-
     .btn{
       appearance:none; cursor:pointer; font-weight:600;
       border:1px solid rgba(255,255,255,.08);
@@ -73,16 +65,20 @@
     }
     .btn.primary{background:linear-gradient(180deg,#3E79FF,#2E5ED6); border-color:#2E5ED6}
     .btn.ghost{background:transparent}
-
     .chips{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0}
     .chip{background:var(--chip); border:1px solid var(--border); color:var(--muted); padding:4px 8px; border-radius:999px; font-size:11px}
-
     .list{display:grid; gap:8px; margin-top:8px}
     .item{display:flex; justify-content:space-between; align-items:center; gap:10px; background:#0F1626; border:1px solid var(--border); border-radius:10px; padding:10px 12px}
     .two{display:grid; grid-template-columns:1fr 1fr; gap:8px}
     .top{display:flex; align-items:center; justify-content:space-between; gap:8px}
-
     @media (max-width:960px){ .grid{grid-template-columns:1fr} }
+
+    /* === CLICK HOTFIX ===
+       Tüm etkileşimli öğeleri en öne al, arka plan ve olası overlay’lerin tıklamayı engellemesini önle */
+    button, select, input, textarea, a { position:relative; z-index:20; pointer-events:auto !important; }
+    .panel * { pointer-events:auto; }
+    /* Eğer başka sabit/absolute bir katman varsa, aşağıyı güvenlik için bırakıyorum:
+       .overlay, .cover, .hero, .mask { pointer-events:none !important; } */
   </style>
 </head>
 <body>
@@ -172,12 +168,12 @@
   </div>
 
   <script>
-    // ---- CONFIG (sizinkiler) ----
+    // ---- CONFIG ----
     const SUPABASE_URL  = "https://zooclwpqfwpzwosnqjem.supabase.co";
     const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvb2Nsd3BxZndwendvc25xamVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwODczNjUsImV4cCI6MjA3MTY2MzM2NX0.lCW2dSb7HV3vuXKNa_QFJ0o5I4522RE8CS-PDmOflk0";
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-    // ---- Cities (81) ----
+    // ---- CITIES ----
     const TR_CITIES = [
       "Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin",
       "Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur",
@@ -200,9 +196,7 @@
     const whoami = $('#whoami');
     const loginBtn = $('#btn-login');
 
-    function fillCities(sel){
-      sel.innerHTML = TR_CITIES.map(c=>`<option value="${c}">${c}</option>`).join('');
-    }
+    function fillCities(sel){ sel.innerHTML = TR_CITIES.map(c=>`<option value="${c}">${c}</option>`).join(''); }
     fillCities(citySelect); fillCities(browserCity); fillCities(eventsCitySelect);
 
     // ---- AUTH ----
@@ -213,12 +207,12 @@
       currentUser = user || null;
 
       if(currentUser){
-        loginBtn.style.display = 'none';
-        whoami.style.display = 'block';
+        loginBtn.style.display='none';
+        whoami.style.display='block';
         $('#login-note').style.display='none';
         whoami.textContent = `Signed in as @${currentUser.user_metadata?.full_name || currentUser.user_metadata?.preferred_username || 'Discord user'}`;
       }else{
-        loginBtn.style.display = 'inline-block';
+        loginBtn.style.display='inline-block';
         whoami.style.display='none';
         $('#login-note').style.display='block';
       }
@@ -234,9 +228,10 @@
       await fetchOwnProfileIntoUI();
       await refreshMembers();
       await refreshEventsUI();
+      attachRealtimeEvents();
     });
 
-    // ---- USERS table helpers ----
+    // ---- USERS ----
     async function fetchOwnProfileIntoUI(){
       if(!currentUser) return;
       const { data } = await supabase.from('users').select('*').eq('discord_id', currentUser.id).maybeSingle();
@@ -259,11 +254,9 @@
 
     // ---- MEMBERS (browser) ----
     async function refreshMembers(){
-      // total (count)
       const { count:total } = await supabase.from('users').select('*', { count:'exact', head:true });
       chipTotal.textContent = `${total ?? 0} total members`;
 
-      // list by city
       const city = browserCity.value;
       let q = supabase.from('users').select('*').order('username', { ascending:true });
       if(city) q = q.eq('city', city);
@@ -328,7 +321,7 @@
     }
     eventsCitySelect.addEventListener('change', refreshEventsUI);
 
-    // --- Realtime: sadece events tablosu ---
+    // --- Realtime: events ---
     let evChannel = null;
     function attachRealtimeEvents(){
       try{
