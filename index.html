@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sentient Türkiye Community Map - GemBatu (production)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, system-ui, Arial, sans-serif;
+      color: #e6ecff;
+      min-height: 100vh;
+      overflow-x: hidden;
+
+      /* 🔽 Arka plan resmi */
+      background: url("assets/bg.jpg") no-repeat center center fixed;
+      background-size: cover;
+    }
+
+    /* Yazıların okunması için üst gölge */
+    .shade {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .wrap { max-width: 1100px; margin: auto; padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+    h1 { font-size: 20px; font-weight: 700; text-align: center; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .card { background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 18px; }
+    .row { display: flex; gap: 10px; margin-top: 8px; }
+
+    label { font-size: 13px; color: #b9c6ff; }
+    input, select, textarea, button {
+      width: 100%; padding: 10px 12px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.2); background: rgba(8,12,26,.65);
+      color: #e6ecff; font-size: 14px; outline: none;
+    }
+    textarea { min-height: 80px; resize: vertical; }
+    button { cursor: pointer; background: #2757ff; border-color: #315dff; font-weight: 600; }
+    button:hover { background: #1f4be0; }
+    .muted { font-size: 12px; color: #9fb0ff; }
+
+    .badges { display: flex; gap: 8px; margin: 6px 0 10px; }
+    .badge { font-size: 12px; background: rgba(255,255,255,.08); padding: 4px 8px; border-radius: 999px; }
+
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { padding: 8px 10px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.05); border-radius: 8px; margin-top: 8px; }
+
+    .event { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 12px; margin-top: 10px; }
+    .tiny { font-size: 12px; opacity: .8; }
+    .topbar { display: flex; justify-content: flex-end; }
+  </style>
+
+  <!-- Supabase client -->
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const SUPABASE_URL  = "https://zooclwpqfwpzwosnqjem.supabase.co";
+    const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvb2Nsd3BxZndwendvc25xamVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwODczNjUsImV4cCI6MjA3MTY2MzM2NX0.lCW2dSb7HV3vuXKNa_QFJ0o5I4522RE8CS-PDmOflk0";
+
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    const citiesTR = ["Adana","Ankara","İstanbul","İzmir","Eskişehir","Bursa","Antalya","Konya","Gaziantep","Kayseri","Trabzon","Van","Şanlıurfa","Adıyaman","Mardin","Diyarbakır","Samsun","Rize","Kocaeli","Sakarya","Tekirdağ","Aydın","Çanakkale","Manisa","Balıkesir","Hatay","Mersin","Denizli","Erzurum","Malatya","Elazığ","Kütahya","Uşak","Zonguldak","Ordu","Tokat","Çorum","Afyonkarahisar","Isparta","Kırıkkale","Karaman","Batman","Siirt","Şırnak","Kars","Ağrı","Ardahan","Gümüşhane","Bayburt","Bitlis","Bingöl","Hakkâri","Kilis","Osmaniye","Niğde","Nevşehir","Aksaray","Yalova","Bartın","Karabük","Düzce","Çankırı","Kırşehir","Kırklareli","Kastamonu","Sinop","Artvin","Giresun","Edirne","Muğla"];
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const citySelect = document.getElementById('citySelect');
+      const cityFilter = document.getElementById('cityFilter');
+      const evCity     = document.getElementById('evCity');
+      citiesTR.forEach(c => {
+        citySelect.append(new Option(c,c));
+        cityFilter.append(new Option(c,c));
+        evCity.append(new Option(c,c));
+      });
+
+      const { data: { user } } = await sb.auth.getUser();
+      renderAuth(user);
+
+      await refreshMembers();
+      await refreshEvents();
+
+      document.getElementById('btnDiscord').onclick = async () => {
+        const redirectTo = location.origin + location.pathname;
+        await sb.auth.signInWithOAuth({
+          provider: 'discord',
+          options: { redirectTo }
+        });
+      };
+
+      document.getElementById('btnSaveEntry').onclick = async () => {
+        const city = citySelect.value;
+        if (!city) return alert('Select your city first.');
+        const { data: session } = await sb.auth.getUser();
+        if (!session.user) return alert('Please sign in with Discord.');
+
+        const meta = session.user.user_metadata || {};
+        const discord_id = meta.provider_id || meta.sub || session.user.id;
+        const username =
+          meta.full_name ||
+          meta.preferred_username ||
+          meta.user_name ||
+          meta.custom_claims?.global_name ||
+          meta.name ||
+          ('User#' + String(discord_id).slice(-4));
+
+        const { error } = await sb.from('users').upsert({
+          discord_id, username, city
+        }, { onConflict: 'discord_id' });
+
+        if (error) return alert('Save failed:\n' + error.message);
+        await refreshMembers();
+        alert('Saved. Welcome, ' + username + '!');
+      };
+
+      document.getElementById('btnShowAll').onclick = () => {
+        document.getElementById('cityFilter').value = '';
+        refreshMembers();
+      };
+      document.getElementById('cityFilter').onchange = refreshMembers;
+
+      document.getElementById('btnCreateEvent').onclick = async () => {
+        const eCity = evCity.value;
+        const title = document.getElementById('evTitle').value.trim();
+        const when  = document.getElementById('evDate').value.trim();
+        const venue = document.getElementById('evVenue').value.trim();
+        const desc  = document.getElementById('evDesc').value.trim();
+        if (!eCity || !title || !when || !venue) return alert('Please fill all required fields.');
+        const iso = new Date(when).toISOString();
+
+        const { error } = await sb.from('events').insert({
+          city: eCity, title, date: iso, venue, description: desc
+        });
+        if (error) return alert('Event save failed:\n' + error.message);
+
+        document.getElementById('evTitle').value = '';
+        document.getElementById('evDate').value = '';
+        document.getElementById('evVenue').value = '';
+        document.getElementById('evDesc').value  = '';
+        await refreshEvents();
+        alert('Event created.');
+      };
+    });
+
+    function renderAuth(user){
+      const status = document.getElementById('authStatus');
+      if (user) {
+        const name = user.user_metadata?.preferred_username ||
+                     user.user_metadata?.global_name ||
+                     user.user_metadata?.name || 'Discord user';
+        status.textContent = `Logged in as ${name}`;
+      } else {
+        status.textContent = 'Not signed in';
+      }
+    }
+
+    async function refreshMembers(){
+      const filter = document.getElementById('cityFilter').value;
+      let q = sb.from('users').select('username, city, created_at').order('created_at', { ascending:false });
+      if (filter) q = q.eq('city', filter);
+      const { data, error } = await q;
+      const box = document.getElementById('members');
+      const total = document.getElementById('totalCount');
+      const inCity = document.getElementById('inCityCount');
+
+      if (error){ box.innerHTML = `<div class="muted">Error: ${error.message}</div>`; return; }
+      total.textContent = (data || []).length + ' total members';
+      inCity.textContent = filter ? ((data||[]).length + ' in this city') : '';
+      box.innerHTML = (data||[]).map(u => `<li>@${escapeHtml(u.username)} — <span class="tiny">${escapeHtml(u.city)}</span></li>`).join('') || '<div class="muted">No members yet.</div>';
+    }
+
+    async function refreshEvents(){
+      const { data, error } = await sb.from('events').select('*').order('date', { ascending:true });
+      const list = document.getElementById('eventsList');
+      if (error){ list.innerHTML = `<div class="muted">Error: ${error.message}</div>`; return; }
+      list.innerHTML = (data||[]).map(e => `
+        <div class="event">
+          <b>${escapeHtml(e.title)}</b><br/>
+          ${escapeHtml(e.city)} — ${new Date(e.date).toLocaleString()}<br/>
+          <span class="tiny">${escapeHtml(e.venue)}</span><br/>
+          ${e.description ? `<div class="tiny" style="margin-top:6px">${escapeHtml(e.description)}</div>` : ''}
+        </div>
+      `).join('') || '<div class="muted">No events yet.</div>';
+    }
+
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])) }
+  </script>
+</head>
+<body>
+  <div class="shade"></div>
+  <div class="wrap">
+    <div class="topbar">
+      <span id="authStatus" class="tiny">Not signed in</span>
+    </div>
+    <h1>Sentient Türkiye Community Map - GemBatu (production)</h1>
+
+    <div class="grid">
+      <!-- LEFT -->
+      <section class="card">
+        <div class="row">
+          <button id="btnDiscord">Sign in with Discord</button>
+        </div>
+        <label style="margin-top:12px">Select your city (Türkiye)</label>
+        <select id="citySelect"><option value="">Select…</option></select>
+        <div class="row">
+          <button id="btnSaveEntry">Save my entry</button>
+        </div>
+        <p class="muted">Your Discord nickname and city will be publicly visible.</p>
+      </section>
+
+      <!-- RIGHT -->
+      <section class="card">
+        <div class="badges">
+          <span class="badge" id="totalCount">0 total members</span>
+          <span class="badge" id="inCityCount"></span>
+        </div>
+        <div class="row">
+          <select id="cityFilter" style="max-width:260px"><option value="">All cities</option></select>
+          <button id="btnShowAll" style="max-width:120px">Show all</button>
+        </div>
+        <ul id="members"></ul>
+      </section>
+    </div>
+
+    <!-- EVENTS -->
+    <section class="card events">
+      <h3>Community events</h3>
+      <div class="row">
+        <select id="evCity" style="max-width:220px"><option value="">City…</option></select>
+        <input id="evTitle" placeholder="Event title (e.g., Eskişehir meetup)" />
+      </div>
+      <div class="row">
+        <input id="evDate" placeholder="Date & time (YYYY-MM-DD HH:mm)" />
+        <input id="evVenue" placeholder="Venue / address" />
+      </div>
+      <textarea id="evDesc" placeholder="Short description (optional)"></textarea>
+      <div class="row"><button id="btnCreateEvent">Create event</button></div>
+      <div id="eventsList"></div>
+    </section>
+  </div>
+</body>
+</html>
