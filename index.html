@@ -40,6 +40,8 @@
     .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:#0b1222;color:#cfe1ff}
     .list div{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)}
     .muted{color:var(--muted)}
+    /* Etkinlik listesi büyüdükçe aşağı kayabilsin */
+    #eventsList{max-height:360px;overflow-y:auto;}
     @media (max-width:900px){.grid{grid-template-columns:1fr}}
   </style>
 </head>
@@ -94,6 +96,7 @@
         <h3 style="margin-top:0">City browser</h3>
         <div class="row">
           <select id="browserCity" style="flex:1"></select>
+          <!-- İstediğin davranış: seçilen şehrin listesini bu tuşla uygula; ALL seçiliyse hepsi -->
           <button id="btnShowAll" style="max-width:120px" type="button">Show all</button>
         </div>
 
@@ -108,7 +111,7 @@
   </div>
 
   <script>
-    // --- Supabase setup (Preset A) ---
+    // --- Supabase setup (Nickname-only) ---
     const SUPABASE_URL = "https://zooclwpqfwpzwosnqjem.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvb2Nsd3BxZndwendvc25xamVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwODczNjUsImV4cCI6MjA3MTY2MzM2NX0.lCW2dSb7HV3vuXKNa_QFJ0o5I4522RE8CS-PDmOflk0";
     const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -133,7 +136,7 @@
     const btnCreateEvent = document.getElementById('btnCreateEvent');
     const eventsList = document.getElementById('eventsList');
 
-    // 81 il
+    // 81 il (A→Z)
     const CITIES = [
       "Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin",
       "Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur",
@@ -161,7 +164,7 @@
     fillCitySelect(eventCity);
     fillCitySelect(browserCity, true);
 
-    // Yerel kimlik: tarayıcıya kalıcı anonim id
+    // Tarayıcıya kalıcı anonim id
     function getClientId(){
       let cid = localStorage.getItem('cid');
       if(!cid){
@@ -178,7 +181,7 @@
     }
     reflectNick();
 
-    // Kayıt kaydet (nickname + city)
+    // Kayıt kaydet (nickname + city) → sağ panelde herkes görsün
     btnSaveCity.addEventListener('click', async ()=>{
       const userId = getClientId();
       const userName = nickname.value.trim();
@@ -189,21 +192,24 @@
       localStorage.setItem('nick', userName);
       reflectNick();
 
-      // id bazlı upsert: aynı cihaz kullanıcıyı günceller
+      // Cihaz-id’ye göre upsert: aynı cihazda şehir güncelleme yapar
       const { error } = await supa.from('users')
         .upsert({ id: userId, username: userName, city }, { onConflict: 'id' });
       if(error){ alert("Save error: " + error.message); return; }
 
-      await refreshMembersUI(currentBrowserCity());
+      await refreshMembersUI(currentBrowserCity); // mevcut filtreyi koru
       alert("Your city has been saved.");
     });
 
-    // Members browser
+    // Sağ panel (City browser): filtre ancak “Show all” ile uygulanır
     function currentBrowserCity(){
       const v = browserCity.value;
       return (v && v !== "ALL") ? v : null;
     }
-    async function refreshMembersUI(selectedCity=null){
+    async function refreshMembersUI(getCityFn){
+      const selectedCity = typeof getCityFn === "function" ? getCityFn() : null;
+
+      // toplam üye
       const total = await supa.from('users').select('id');
       totalCount.textContent = (total.data?.length || 0) + " total members";
 
@@ -218,12 +224,14 @@
         ? "No members yet."
         : data.map(u => `<div>@${u.username} — ${u.city}</div>`).join('');
     }
-    browserCity.addEventListener('change', ()=> refreshMembersUI(currentBrowserCity()));
-    btnShowAll.addEventListener('click', ()=> { browserCity.value="ALL"; refreshMembersUI(null); });
+    // Şehir değişiminde otomatik filtreleme YOK; özellikle butonla uygula
+    btnShowAll.addEventListener('click', ()=> refreshMembersUI(currentBrowserCity));
 
-    // Events
+    // Etkinlikler (şehir bazlı, tarih artan)
     async function refreshEvents(city){
-      let q = supa.from('events').select('title,event_date,venue,description,city').order('event_date',{ascending:true});
+      let q = supa.from('events')
+        .select('title,event_date,venue,description,city')
+        .order('event_date',{ascending:true, nullsLast:true});
       if(city) q = q.eq('city', city);
       const { data, error } = await q;
       if(error){ eventsList.innerHTML = "Error: "+error.message; return; }
@@ -233,17 +241,18 @@
         return `<div><b>${e.title}</b> — ${e.city}<br>${dt}${e.venue? " @ "+e.venue:""}<br><span class="muted">${e.description||""}</span></div>`;
       }).join('<div style="height:8px"></div>');
     }
+    // Event şehri değişince anında o şehrin etkinlikleri
+    eventCity.addEventListener('change', ()=> refreshEvents(eventCity.value));
 
     btnCreateEvent.addEventListener('click', async ()=>{
       const title = eventTitle.value.trim();
       const city  = eventCity.value;
       if(!title || !city){ alert("Please fill city and title."); return; }
 
-      // datetime-local'i olduğu gibi saklıyoruz (kolaylık için)
       const payload = {
         city,
         title,
-        event_date: eventDate.value || null,
+        event_date: eventDate.value || null,  // kolaylık için; istersen ISO'ya çevirebiliriz
         venue: eventVenue.value.trim(),
         description: eventDesc.value.trim(),
         created_by: getClientId()
@@ -256,10 +265,10 @@
       alert("Event created.");
     });
 
-    // Realtime açıksa dinle (açıksa anında günceller, değilse polling devrede)
+    // Realtime açıksa dinle (anında yenile); değilse polling devrede
     supa.channel('realtime-users')
-      .on('postgres_changes',{event:'INSERT', schema:'public', table:'users'}, ()=> refreshMembersUI(currentBrowserCity()))
-      .on('postgres_changes',{event:'UPDATE', schema:'public', table:'users'}, ()=> refreshMembersUI(currentBrowserCity()))
+      .on('postgres_changes',{event:'INSERT', schema:'public', table:'users'}, ()=> refreshMembersUI(currentBrowserCity))
+      .on('postgres_changes',{event:'UPDATE', schema:'public', table:'users'}, ()=> refreshMembersUI(currentBrowserCity))
       .subscribe();
 
     supa.channel('realtime-events')
@@ -269,16 +278,15 @@
       })
       .subscribe();
 
-    // Ek garanti: otomatik yenilemeler (polling)
-    eventCity.addEventListener('change', () => refreshEvents(eventCity.value));
-    setInterval(() => refreshEvents(eventCity.value), 15000);
-    document.addEventListener('visibilitychange', () => { if(!document.hidden) refreshEvents(eventCity.value); });
+    // Ek garanti: otomatik tazeleme (realtime kapalı olsa da işler)
+    setInterval(()=> refreshEvents(eventCity.value), 15000);
+    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshEvents(eventCity.value); });
 
-    // Init
+    // İlk yükleme
     (async ()=>{
       reflectNick();
-      await refreshMembersUI(null);
-      await refreshEvents(eventCity.value);
+      await refreshMembersUI(null);          // başlangıçta tamamı
+      await refreshEvents(eventCity.value);  // seçili şehir (ilk option)
     })();
   </script>
 </body>
