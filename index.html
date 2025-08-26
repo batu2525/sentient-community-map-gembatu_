@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Sentient Türkiye Community Map — GemBatu</title>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
     :root{--card:rgba(0,0,0,.72);--fg:#eaf2ff;--muted:#aab6d1;--btn:#2563eb;--btnh:#1d4ed8}
     *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;
       font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
@@ -25,6 +26,7 @@
       padding:16px;
       box-shadow:0 6px 30px rgba(0,0,0,.25);
       backdrop-filter: blur(6px);
+      pointer-events:auto; /* güvenlik: tıklamaları kapatan overlay olmasın */
     }
     .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     label.small{font-size:12px;color:var(--muted)}
@@ -74,9 +76,9 @@
           <label class="small">City</label>
           <select id="eventCity"></select>
 
-          <input id="eventTitle" placeholder="Event title (e.g., Eskişehir meetup)" />
+          <input id="eventTitle" placeholder="Event title (e.g., Eskişehir meetup)"/>
           <input id="eventDate" type="datetime-local"/>
-          <input id="eventVenue" placeholder="Venue / address" />
+          <input id="eventVenue" placeholder="Venue / address"/>
           <textarea id="eventDesc" placeholder="Short description (optional)"></textarea>
 
           <div class="row" style="justify-content:flex-end">
@@ -143,13 +145,11 @@
       "Şanlıurfa","Şırnak","Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"
     ];
 
-    // Dropdownları doldur
     function fillCitySelect(el, includeAll=false){
       el.innerHTML = "";
       if(includeAll){
         const opt = document.createElement('option');
-        opt.value = "ALL";
-        opt.textContent = "All cities";
+        opt.value = "ALL"; opt.textContent = "All cities";
         el.appendChild(opt);
       }
       CITIES.forEach(c=>{
@@ -202,7 +202,7 @@
       const discordId = getDiscordIdFromSession(session);
 
       const payload = { id: user.id, username, city };
-      if(discordId) payload.discord_id = discordId; // NULL CONSTRAINT'i çözer
+      if(discordId) payload.discord_id = discordId; // NOT NULL ihlali yaşamamak için
 
       const { error } = await supa.from('users').upsert(payload, { onConflict: 'id' });
       if(error){ alert("Save error: " + error.message); return; }
@@ -239,38 +239,25 @@
 
     // --- Events ---
     async function refreshEvents(city){
-      let q = supa
-        .from('events')
-        .select('title,event_date,venue,description,city')
-        .order('event_date',{ascending:true,nullsFirst:false});
+      let q = supa.from('events').select('title,event_date,venue,description,city').order('event_date',{ascending:true});
       if(city) q = q.eq('city', city);
       const { data, error } = await q;
       if(error){ eventsList.innerHTML = "Error: "+error.message; return; }
       if(!data || data.length===0){ eventsList.innerHTML = "No events for this city yet."; return; }
       eventsList.innerHTML = data.map(e=>{
         const dt = e.event_date ? new Date(e.event_date).toLocaleString() : "";
-        return `<div><b>${e.title}</b> — ${e.city}<br>${dt}${e.venue ? " @ "+e.venue : ""}<br><span class="muted">${e.description||""}</span></div>`;
+        return `<div><b>${e.title}</b> — ${e.city}<br>${dt} @ ${e.venue}<br><span class="muted">${e.description||""}</span></div>`;
       }).join('<div style="height:8px"></div>');
     }
-
-    // Şehir seçimi değişince listeyi güncelle (ÖNEMLİ)
-    eventCity.addEventListener('change', ()=> refreshEvents(eventCity.value));
 
     btnCreateEvent.addEventListener('click', async ()=>{
       const { data:{session} } = await supa.auth.getSession();
       if(!session){ alert("Please sign in first."); return; }
 
-      // datetime-local -> ISO (tüm kullanıcılar aynı görebilsin)
-      let iso = null;
-      if (eventDate.value) {
-        const d = new Date(eventDate.value);
-        if (!isNaN(d)) iso = d.toISOString();
-      }
-
       const payload = {
         city: eventCity.value,
         title: eventTitle.value.trim(),
-        event_date: iso,            // ISO olarak kaydet
+        event_date: eventDate.value || null,
         venue: eventVenue.value.trim(),
         description: eventDesc.value.trim(),
         created_by: session.user.id
@@ -281,14 +268,14 @@
       if(error){ alert("Error: "+error.message); return; }
 
       // formu temizle
-      eventTitle.value = ""; eventVenue.value = ""; eventDesc.value = ""; eventDate.value = "";
+      eventTitle.value = ""; eventVenue.value = ""; eventDesc.value = "";
 
-      // aynı şehir listesi yenilensin
+      // listeyi anında yenile
       await refreshEvents(eventCity.value);
       alert("Event created.");
     });
 
-    // --- Realtime (üyeler & etkinlikler) ---
+    // --- Realtime (varsa) ---
     supa.channel('realtime-users')
       .on('postgres_changes',{event:'INSERT', schema:'public', table:'users'}, ()=> refreshMembersUI(currentBrowserCity()))
       .on('postgres_changes',{event:'UPDATE', schema:'public', table:'users'}, ()=> refreshMembersUI(currentBrowserCity()))
@@ -299,19 +286,28 @@
         const watchCity = eventCity.value;
         if(!watchCity || payload.new.city === watchCity) refreshEvents(watchCity);
       })
-      .on('postgres_changes',{event:'UPDATE', schema:'public', table:'events'}, (payload)=>{
-        const watchCity = eventCity.value;
-        if(!watchCity || payload.new.city === watchCity) refreshEvents(watchCity);
-      })
       .subscribe();
+
+    // --- Ek garanti: otomatik yenilemeler (polling) ---
+    // 1) Şehir değişince etkinlik listesini yenile
+    eventCity.addEventListener('change', () => refreshEvents(eventCity.value));
+
+    // 2) Her 15 saniyede bir etkinlik listesini tazele (realtime yoksa bile çalışır)
+    setInterval(() => refreshEvents(eventCity.value), 15000);
+
+    // 3) Sekmeye geri dönünce tazele (kaynak dostu)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) refreshEvents(eventCity.value);
+    });
+
+    // 4) Giriş durumu değişince de tazele (opsiyonel ama zararsız)
+    supa.auth.onAuthStateChange(() => refreshEvents(eventCity.value));
 
     // --- Init ---
     (async ()=>{
       await reflectSession();
       await refreshMembersUI(null);
       await refreshEvents(eventCity.value);
-
-      supa.auth.onAuthStateChange(async (_event, _session)=>{ await reflectSession(); });
     })();
   </script>
 </body>
