@@ -6,40 +6,56 @@
   <title>Sentient Türkiye Community Map — GemBatu</title>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
-    :root{--card:rgba(0,0,0,.72);--fg:#eaf2ff;--muted:#aab6d1;--btn:#2563eb;--btnh:#1d4ed8}
+    :root{
+      --card: rgba(0,0,0,.72);
+      --fg: #eaf2ff;
+      --muted:#aab6d1;
+      --btn:#2563eb; --btnh:#1d4ed8;
+      --ink:#0f172a; --ink-2:#0b1222;
+    }
     *{box-sizing:border-box}
-    html,body{height:100%}
     body{
-      margin:0;
+      margin:0; color:var(--fg);
       font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
-      color:var(--fg);
       background:url("assets/bg.jpg") no-repeat center center fixed;
       background-size:cover;
+      min-height:100vh;
     }
-    .container{max-width:1100px;margin:0 auto;padding:28px 16px;}
-    h2{margin:0 0 16px 0;text-shadow:0 2px 10px rgba(0,0,0,.35)}
+    .container{max-width:1100px;margin:0 auto;padding:28px 16px;position:relative;z-index:0}
+    h2{margin:0 0 16px;text-shadow:0 2px 10px rgba(0,0,0,.35)}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .stack{display:grid;gap:16px}
+
     .card{
       background:var(--card);
-      border-radius:14px;
-      padding:16px;
+      border-radius:14px; padding:16px;
       box-shadow:0 6px 30px rgba(0,0,0,.25);
       backdrop-filter: blur(6px);
-      pointer-events:auto;
+      position:relative; z-index:1;
     }
+
     .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     label.small{font-size:12px;color:var(--muted)}
-    select,input,textarea,button{width:100%;padding:10px 12px;border:0;border-radius:10px;outline:none;}
-    select,input,textarea{background:#0f172a;color:#e5edff}
+    select,input,textarea,button{
+      width:100%;padding:10px 12px;border:0;border-radius:10px;outline:none;
+    }
+    select,input,textarea{background:var(--ink);color:#e5edff}
+    input::placeholder,textarea::placeholder{color:#9fb0d3}
     textarea{min-height:72px;resize:vertical}
     button{background:var(--btn);color:#fff;cursor:pointer;font-weight:600}
     button:hover{background:var(--btnh)}
-    .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:#0b1222;color:#cfe1ff}
-    .list div{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+    .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:var(--ink-2);color:#cfe1ff}
     .muted{color:var(--muted)}
-    #eventsList{max-height:360px;overflow-y:auto;}
-    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+    .list{display:block;max-height:340px;overflow:auto;margin-top:8px}
+    .list div{padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+    .spacer{height:8px}
+    .two{display:grid;grid-template-columns:1fr auto;gap:8px}
+    .right{display:flex;justify-content:flex-end}
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    @media (max-width:900px){
+      .grid{grid-template-columns:1fr}
+      .split{grid-template-columns:1fr}
+    }
   </style>
 </head>
 <body>
@@ -47,88 +63,95 @@
     <h2>Sentient Türkiye Community Map — <b>GemBatu</b> <span class="muted" style="font-size:12px">(production)</span></h2>
 
     <div class="grid">
+      <!-- LEFT: Join + Events -->
       <div class="stack">
         <!-- Join -->
         <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <h3 style="margin:0">Join the map</h3>
-            <label class="small">Enter a nickname (will be public) and select your city.</label>
+          <div class="two" style="align-items:end">
+            <div>
+              <h3 style="margin:0">Join the map</h3>
+              <label class="small">Enter a nickname and select your city. Your nickname & city will be visible to everyone.</label>
+            </div>
           </div>
 
-          <div class="row">
-            <input id="nickname" placeholder="Your nickname (e.g., @GemBatu)" style="flex:1;max-width:280px"/>
-            <span id="nickStatus" class="pill">Not set</span>
+          <div class="split" style="margin-top:10px">
+            <input id="nickInput" placeholder="Enter a nickname"/>
+            <div></div>
           </div>
 
-          <label class="small">Select your city (Türkiye)</label>
+          <label class="small" style="margin-top:10px">Select your city (Türkiye)</label>
           <select id="citySelect"></select>
 
-          <div class="row" style="justify-content:flex-end">
-            <button id="btnSaveCity" style="max-width:180px" type="button">Save my entry</button>
+          <div class="right" style="margin-top:10px">
+            <button id="btnSaveEntry" style="max-width:180px">Save my entry</button>
           </div>
         </div>
 
         <!-- Events -->
         <div class="card">
-          <h3 style="margin-top:0">Community events</h3>
+          <h3 style="margin:0 0 8px">Community events</h3>
+
           <label class="small">City</label>
           <select id="eventCity"></select>
 
           <input id="eventTitle" placeholder="Event title (e.g., Eskişehir meetup)"/>
-          <input id="eventDate" type="datetime-local"/>
-          <input id="eventVenue" placeholder="Venue / address"/>
+          <div class="split">
+            <input id="eventDate" type="datetime-local"/>
+            <input id="eventVenue" placeholder="Venue / address"/>
+          </div>
           <textarea id="eventDesc" placeholder="Short description (optional)"></textarea>
 
-          <div class="row" style="justify-content:flex-end">
-            <button id="btnCreateEvent" style="max-width:160px" type="button">Create event</button>
+          <div class="right" style="margin-top:10px">
+            <button id="btnCreateEvent" style="max-width:160px">Create event</button>
           </div>
 
           <div id="eventsList" class="list muted">No events for this city yet.</div>
         </div>
       </div>
 
-      <!-- RIGHT -->
+      <!-- RIGHT: Browser -->
       <div class="card">
-        <h3 style="margin-top:0">City browser</h3>
+        <h3 style="margin:0 0 8px">City browser</h3>
         <div class="row">
           <select id="browserCity" style="flex:1"></select>
-          <button id="btnShowAll" style="max-width:120px" type="button">Show all</button>
+          <button id="btnShowAll" style="max-width:120px">Show all</button>
         </div>
-
         <div class="row" style="gap:12px;margin-top:6px">
           <span id="totalCount" class="pill">0 total members</span>
           <span id="cityCount" class="pill">0 in this city</span>
         </div>
 
-        <div id="membersList" class="list muted" style="margin-top:10px">No members yet.</div>
+        <div id="membersList" class="list muted">No members yet.</div>
       </div>
     </div>
   </div>
 
   <script>
+    // === Supabase client (senin projen) ===
     const SUPABASE_URL = "https://zooclwpqfwpzwosnqjem.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvb2Nsd3BxZndwendvc25xamVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwODczNjUsImV4cCI6MjA3MTY2MzM2NX0.lCW2dSb7HV3vuXKNa_QFJ0o5I4522RE8CS-PDmOflk0";
     const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const nickname = document.getElementById('nickname');
-    const nickStatus = document.getElementById('nickStatus');
-    const citySelect = document.getElementById('citySelect');
-    const btnSaveCity = document.getElementById('btnSaveCity');
+    // === DOM refs ===
+    const nickInput   = document.getElementById('nickInput');
+    const citySelect  = document.getElementById('citySelect');
+    const btnSaveEntry= document.getElementById('btnSaveEntry');
 
     const browserCity = document.getElementById('browserCity');
-    const btnShowAll = document.getElementById('btnShowAll');
+    const btnShowAll  = document.getElementById('btnShowAll');
     const membersList = document.getElementById('membersList');
-    const totalCount = document.getElementById('totalCount');
-    const cityCount = document.getElementById('cityCount');
+    const totalCount  = document.getElementById('totalCount');
+    const cityCount   = document.getElementById('cityCount');
 
-    const eventCity = document.getElementById('eventCity');
-    const eventTitle = document.getElementById('eventTitle');
-    const eventDate = document.getElementById('eventDate');
-    const eventVenue = document.getElementById('eventVenue');
-    const eventDesc = document.getElementById('eventDesc');
+    const eventCity   = document.getElementById('eventCity');
+    const eventTitle  = document.getElementById('eventTitle');
+    const eventDate   = document.getElementById('eventDate');
+    const eventVenue  = document.getElementById('eventVenue');
+    const eventDesc   = document.getElementById('eventDesc');
     const btnCreateEvent = document.getElementById('btnCreateEvent');
-    const eventsList = document.getElementById('eventsList');
+    const eventsList  = document.getElementById('eventsList');
 
+    // === 81 city list ===
     const CITIES = [
       "Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin",
       "Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur",
@@ -139,6 +162,7 @@
       "Nevşehir","Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Siirt","Sinop","Sivas",
       "Şanlıurfa","Şırnak","Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"
     ];
+
     function fillCitySelect(el, includeAll=false){
       el.innerHTML = "";
       if(includeAll){
@@ -151,131 +175,121 @@
         o.value = c; o.textContent = c;
         el.appendChild(o);
       });
+      if(includeAll) el.value = "ALL";
     }
     fillCitySelect(citySelect);
     fillCitySelect(eventCity);
     fillCitySelect(browserCity, true);
 
-    // Cihaz kimliği (text)
-    function getClientId(){
-      let cid = localStorage.getItem('cid');
-      if(!cid){
-        cid = (self.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)) + "_anon";
-        localStorage.setItem('cid', cid);
-      }
-      return cid;
+    // === Stable client id (no auth) ===
+    function getCID(){
+      const k = 'cid';
+      let v = localStorage.getItem(k);
+      if(!v){ v = crypto.randomUUID() + '_anon'; localStorage.setItem(k, v); }
+      return v;
     }
-    function reflectNick(){
-      const n = localStorage.getItem('nick') || "";
-      nickname.value = n;
-      nickStatus.textContent = n ? "Nickname: " + n : "Not set";
-    }
-    reflectNick();
 
-    // Kayıt/Update (UUID'a dokunmuyoruz → client_id ile upsert)
-    btnSaveCity.addEventListener('click', async ()=>{
-      const userName = nickname.value.trim();
+    // === Save my entry (id GÖNDERME! upsert by client_id) ===
+    btnSaveEntry.addEventListener('click', async ()=>{
+      const username = (nickInput.value || '').trim();
       const city = citySelect.value;
-      if(!userName){ alert("Please enter a nickname."); return; }
-      if(!city){ alert("Please select a city."); return; }
+      if(!username){ alert('Please enter a nickname.'); return; }
+      if(!city){ alert('Please select a city.'); return; }
 
-      localStorage.setItem('nick', userName);
-      reflectNick();
+      const payload = { client_id: getCID(), username, city };
 
-      const clientId = getClientId();
-      const { error } = await supa.from('users')
-        .upsert({ client_id: clientId, username: userName, city }, { onConflict: 'client_id' });
-      if(error){ alert("Save error: " + error.message); return; }
+      const { error } = await supa
+        .from('users')
+        .upsert(payload, { onConflict: 'client_id' });
+      if(error){ alert('Save error: ' + error.message); return; }
 
-      await refreshMembersUI(currentBrowserCity);
-      alert("Your city has been saved.");
+      await refreshMembersUI(currentBrowserCity());
+      alert('Saved.');
     });
 
+    // === Members UI ===
     function currentBrowserCity(){
       const v = browserCity.value;
-      return (v && v !== "ALL") ? v : null;
+      return (v && v!=="ALL") ? v : null;
     }
-    async function refreshMembersUI(getCityFn){
-      const selectedCity = typeof getCityFn === "function" ? getCityFn() : null;
 
-      const total = await supa.from('users').select('client_id'); // sayım için id şart değil
-      totalCount.textContent = (total.data?.length || 0) + " total members";
+    async function refreshMembersUI(selectedCity=null){
+      // counters
+      const total = await supa.from('users').select('id');
+      totalCount.textContent = (total.data?.length || 0) + ' total members';
 
-      let q = supa.from('users').select('username,city').order('username',{ascending:true});
+      let q = supa.from('users')
+                  .select('username,city')
+                  .order('city', { ascending:true })
+                  .order('username', { ascending:true });
+
       if(selectedCity) q = q.eq('city', selectedCity);
 
       const { data, error } = await q;
-      if(error){ membersList.innerHTML = "Error: "+error.message; return; }
+      if(error){ membersList.innerHTML = 'Error: ' + error.message; return; }
 
-      cityCount.textContent = (data?.length || 0) + " in this city";
+      cityCount.textContent = (data?.length || 0) + ' in this city';
       membersList.innerHTML = (!data || data.length===0)
-        ? "No members yet."
+        ? 'No members yet.'
         : data.map(u => `<div>@${u.username} — ${u.city}</div>`).join('');
     }
-    btnShowAll.addEventListener('click', ()=> refreshMembersUI(currentBrowserCity));
 
-    // Benim UUID'im (events.created_by için)
-    async function getMyUserUuid(){
-      const cid = getClientId();
-      const { data } = await supa.from('users').select('id').eq('client_id', cid).maybeSingle();
-      return data?.id || null;
-    }
+    browserCity.addEventListener('change', ()=> refreshMembersUI(currentBrowserCity()));
+    btnShowAll.addEventListener('click', ()=> { browserCity.value = 'ALL'; refreshMembersUI(null); });
 
+    // === Events ===
     async function refreshEvents(city){
       let q = supa.from('events')
-        .select('title,event_date,venue,description,city')
-        .order('event_date',{ascending:true, nullsLast:true});
+                  .select('title,event_date,venue,description,city')
+                  .order('event_date',{ ascending:true });
       if(city) q = q.eq('city', city);
+
       const { data, error } = await q;
-      if(error){ eventsList.innerHTML = "Error: "+error.message; return; }
-      if(!data || data.length===0){ eventsList.innerHTML = "No events for this city yet."; return; }
+      if(error){ eventsList.innerHTML = 'Error: '+error.message; return; }
+
+      if(!data || data.length===0){
+        eventsList.innerHTML = 'No events for this city yet.'; return;
+      }
       eventsList.innerHTML = data.map(e=>{
-        const dt = e.event_date ? new Date(e.event_date).toLocaleString() : "";
-        return `<div><b>${e.title}</b> — ${e.city}<br>${dt}${e.venue? " @ "+e.venue:""}<br><span class="muted">${e.description||""}</span></div>`;
-      }).join('<div style="height:8px"></div>');
+        const dt = e.event_date ? new Date(e.event_date).toLocaleString() : '';
+        return `<div><b>${e.title}</b> — ${e.city}<br>${dt}${e.venue?(' @ '+e.venue):''}<br><span class="muted">${e.description||''}</span></div>`;
+      }).join('');
     }
-    eventCity.addEventListener('change', ()=> refreshEvents(eventCity.value));
 
     btnCreateEvent.addEventListener('click', async ()=>{
-      const title = eventTitle.value.trim();
-      const city  = eventCity.value;
-      if(!title || !city){ alert("Please fill city and title."); return; }
-
-      const createdBy = await getMyUserUuid(); // olabilir: null
       const payload = {
-        city,
-        title,
+        city: eventCity.value,
+        title: (eventTitle.value||'').trim(),
         event_date: eventDate.value || null,
-        venue: eventVenue.value.trim(),
-        description: eventDesc.value.trim(),
-        created_by: createdBy
+        venue: (eventVenue.value||'').trim(),
+        description: (eventDesc.value||'').trim()
       };
-      const { error } = await supa.from('events').insert(payload);
-      if(error){ alert("Error: "+error.message); return; }
+      if(!payload.city || !payload.title){ alert('Please fill city and title.'); return; }
 
-      eventTitle.value = ""; eventVenue.value = ""; eventDesc.value = "";
+      const { error } = await supa.from('events').insert(payload);
+      if(error){ alert('Error: '+error.message); return; }
+
+      // temizle ve listeyi güncelle
+      eventTitle.value=''; eventVenue.value=''; eventDesc.value='';
       await refreshEvents(eventCity.value);
-      alert("Event created.");
+      alert('Event created.');
     });
 
-    // Realtime (varsa)
-    supa.channel('realtime-users')
-      .on('postgres_changes',{event:'INSERT', schema:'public', table:'users'}, ()=> refreshMembersUI(currentBrowserCity))
-      .on('postgres_changes',{event:'UPDATE', schema:'public', table:'users'}, ()=> refreshMembersUI(currentBrowserCity))
+    // === Realtime ===
+    supa.channel('rt-users')
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'users'}, ()=> refreshMembersUI(currentBrowserCity()))
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'users'}, ()=> refreshMembersUI(currentBrowserCity()))
       .subscribe();
 
-    supa.channel('realtime-events')
-      .on('postgres_changes',{event:'INSERT', schema:'public', table:'events'}, (payload)=>{
+    supa.channel('rt-events')
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'events'}, (p)=>{
         const watchCity = eventCity.value;
-        if(!watchCity || payload.new.city === watchCity) refreshEvents(watchCity);
+        if(!watchCity || p.new.city === watchCity) refreshEvents(watchCity);
       })
       .subscribe();
 
-    setInterval(()=> refreshEvents(eventCity.value), 15000);
-    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshEvents(eventCity.value); });
-
+    // === Init ===
     (async ()=>{
-      reflectNick();
       await refreshMembersUI(null);
       await refreshEvents(eventCity.value);
     })();
